@@ -21,7 +21,7 @@
 		"formatter": {
 			"quoteStyle": "single",
 			"semicolons": "asNeeded",
-      "trailingCommas": "all"
+			"trailingCommas": "all"
 		}
 	},
 	"assist": {

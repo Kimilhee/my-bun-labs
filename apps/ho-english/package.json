@@ -4,11 +4,14 @@
 	"private": true,
 	"scripts": {
 		"dev": "vite",
+		"dev:server": "bun run --watch server/index.ts",
 		"build": "tsc --noEmit && vite build",
 		"preview": "vite preview",
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
+		"@google/genai": "^1.51.0",
+		"hono": "^4.12.16",
 		"react": "^19.0.0",
 		"react-dom": "^19.0.0"
 	},
