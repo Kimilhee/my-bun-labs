@@ -47,46 +47,16 @@ cd <name>
 
 ## 4. Working principles
 
-빠른 출시를 위한 6원칙. 이 리포의 모든 코드/리뷰/AI agent 작업의 기본 자세.
+이 리포에 특화된 행동 디폴트. 보편 원칙(Simplicity first · Surgical changes · Goal-driven · Ship simplest demo · Lean on ecosystem)은 `~/.claude/CLAUDE.md` §1 참조.
 
-### 1) Default to action; pause when irreversible
+### Default to action; pause when irreversible
 
-빠른 출시의 핵심은 "토론 줄이고 diff 늘리기".
+이 리포는 사이드 프로젝트 모노레포 — 이 디폴트가 특히 강하게 적용된다 (대부분 그린필드, 안전망보다 출시 속도가 우선). 빠른 출시의 핵심은 "토론 줄이고 diff 늘리기".
 
 - **Reversible**(파일 편집, 프로토타입, 작은 추가)에서는 **먼저 실행**한다. 가정을 의식처럼 나열하지 말고, 일단 만들고 diff로 대화하라.
 - **Irreversible / 비싼 결정**(공개 API 모양, DB 스키마/마이그레이션, 인증 방식, 새 dependency 추가, 외부 서비스 호출, 배포)에서는 **반드시 한 번 멈춰** 의도를 확인.
 - 가정을 말로 푸는 비용 < 잘못 만든 비용 일 때만 질문. 그 외엔 그냥 짠다.
 - 불확실하면 **walking skeleton**(가장 작은 검증 가능한 버전) 부터.
-
-### 2) Simplicity first
-
-- 요청된 것 외 기능 금지. 일회용 코드에 추상화 금지. 안 일어날 에러에 핸들러 금지.
-- 200줄을 50줄로 만들 수 있으면 다시 쓴다.
-- "시니어가 보면 over-engineered라고 할까?" — 그렇다면 줄여라.
-
-### 3) Surgical changes
-
-- 요청 범위 밖의 코드/포맷팅/주석을 "개선"하지 마라.
-- 내 변경이 만든 고아(unused import 등)만 치운다. 기존 dead code는 언급만 하고 손대지 않는다.
-- 모든 변경된 줄은 사용자 요청까지 추적 가능해야 한다.
-
-### 4) Goal-driven, but ship-shaped
-
-- 작업을 검증 가능한 목표로 바꾼다 ("validation 추가" → "잘못된 입력 테스트 작성 → 통과시키기").
-- **검증의 기본 단위는 happy path 1개**. 엣지 케이스는 happy path가 동작한 다음에.
-- 멀티스텝 작업은 짧은 plan을 적되, 한 단계씩 끝내고 다음으로.
-
-### 5) Ship the simplest demo first
-
-- Working > perfect. **End-to-end happy path 먼저**, 그 다음에 엣지/에러/폴리시.
-- 깊이를 줄이지 말고 **scope를 줄여라**.
-- Hardcode → mock → real 의 순서. 진짜 데이터는 진짜 필요해질 때.
-
-### 6) Lean on the ecosystem
-
-- 직접 짜기 전에 라이브러리부터 본다. NIH는 비용이다.
-- 디폴트 스택을 기본으로 쓰고, 이탈은 사유 1-2줄로 기록.
-- "최신 + 안정"이 기준. 1.x 미도달이거나 활발히 깨지는 라이브러리는 피한다.
 
 ## 5. 컨벤션
 
@@ -95,7 +65,6 @@ cd <name>
 - **import 정렬**: Biome `assist`에 위임 (`bun run check`).
 - **포맷팅 충돌**: Biome 결과가 정답. 수동 포맷팅 금지.
 - **커밋 메시지**: 자유롭되 명령형 짧게. Conventional Commits는 강제 안 함.
-- **`.env`**: 절대 커밋 금지. `.env.example`만 커밋.
 
 ## 6. Map (더 깊은 문서)
 
@@ -105,8 +74,4 @@ cd <name>
 
 ## 7. AI agent 사용에 대해
 
-이 리포는 Claude Code, Codex, OpenCode 등 여러 AI agent를 가정한다.
-
-- `AGENTS.md`는 `CLAUDE.md`로의 심볼릭 링크 — 이 문서가 진실의 단일 원천.
-- agent에게 작업을 시킬 때는 §4 원칙을 따른다고 가정해도 된다 (이 문서를 읽었으니).
-- 큰 결정(스택 변경, 패키지 추출, 마이그레이션)은 agent가 단독으로 진행하지 말고 사람과 합의.
+보편 가정(AGENTS.md = CLAUDE.md 심볼릭, 우선순위, 큰 결정 단독 금지)은 `~/.claude/CLAUDE.md` §4 참조. agent는 글로벌 + 이 문서의 원칙을 함께 따른다고 가정한다.
