@@ -82,6 +82,7 @@ export function SessionScreen({ data, session, dispatch, onSettings }: Props) {
 	const startRecite = () => {
 		if (recite.status === 'recording') return
 		const firstPhrase = data.settings.firstPhraseMode
+		const autoAdvance = data.settings.autoAdvance
 		const handle = startRecognition(
 			(t) => setRecite({ status: 'recording', transcript: t }),
 			(finalT) => {
@@ -90,9 +91,9 @@ export function SessionScreen({ data, session, dispatch, onSettings }: Props) {
 				setRecite({ status: 'result', transcript: finalT, grade })
 				if (grade.pass) {
 					playPass()
-					// 완벽 일치일 때만 자동 진행. 조금이라도 다르면 대조 화면에서 확인.
-					// (옛말 어절은 50%만 넘으면 완벽으로 취급 — STT가 옛말을 잘 못 받아적음)
-					if (grade.perfect) {
+					// 완벽 일치 + 자동넘김 설정일 때만 자동 진행.
+					// (옛말 어절은 75% 이상이면 완벽으로 취급 — STT가 옛말을 잘 못 받아적음)
+					if (grade.perfect && autoAdvance) {
 						window.setTimeout(
 							() => dispatch({ type: 'next', wrong: false }),
 							1100,
@@ -109,10 +110,13 @@ export function SessionScreen({ data, session, dispatch, onSettings }: Props) {
 	}
 	const stopRecite = () => recRef.current?.stop()
 
+	const auto = data.settings.autoAdvance
 	const panelResult =
-		recite.status === 'result' && !recite.grade.perfect ? recite : null
+		recite.status === 'result' && !(recite.grade.perfect && auto)
+			? recite
+			: null
 	const passResult =
-		recite.status === 'result' && recite.grade.perfect ? recite : null
+		recite.status === 'result' && recite.grade.perfect && auto ? recite : null
 
 	return (
 		<div className="screen">
@@ -135,6 +139,15 @@ export function SessionScreen({ data, session, dispatch, onSettings }: Props) {
 					aria-label="설정"
 				>
 					⚙
+				</button>
+				<button
+					type="button"
+					className="icon-btn"
+					onClick={() => dispatch({ type: 'redoPrev' })}
+					disabled={!session.history.some((e) => e.verseId !== id)}
+					aria-label="이전 구절 다시"
+				>
+					⟲
 				</button>
 			</div>
 
@@ -178,7 +191,11 @@ export function SessionScreen({ data, session, dispatch, onSettings }: Props) {
 							</p>
 							<p className="note">
 								일치율 {Math.round(panelResult.grade.similarity * 100)}%
-								{panelResult.grade.pass && ' · 통과 기준은 넘었어요'}
+								{panelResult.grade.perfect
+									? ' · 완벽 ✅'
+									: panelResult.grade.pass
+										? ' · 통과 기준은 넘었어요'
+										: ''}
 							</p>
 						</div>
 						<div className="actions three">

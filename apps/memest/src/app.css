@@ -71,6 +71,10 @@ body {
 	cursor: pointer;
 }
 
+.icon-btn:disabled {
+	opacity: 0.3;
+}
+
 /* ── 단서 / 정답 ── */
 .cue,
 .answer,

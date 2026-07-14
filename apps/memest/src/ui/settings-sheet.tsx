@@ -84,6 +84,17 @@ export function SettingsSheet({ data, dispatch, onClose }: Props) {
 					<label className="row">
 						<input
 							type="checkbox"
+							checked={data.settings.autoAdvance}
+							onChange={(e) =>
+								dispatch({ type: 'setAutoAdvance', on: e.target.checked })
+							}
+						/>
+						100% 일치 시 자동 넘김 — 끄면 결과 화면에 머무름
+					</label>
+
+					<label className="row">
+						<input
+							type="checkbox"
 							checked={data.settings.firstPhraseMode}
 							onChange={(e) =>
 								dispatch({ type: 'setFirstPhraseMode', on: e.target.checked })

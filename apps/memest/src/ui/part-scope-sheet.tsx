@@ -42,9 +42,9 @@ export function PartScopeSheet({ scope, onChange, onClose }: Props) {
 					<button
 						type="button"
 						className="icon-btn"
-						onClick={() => onChange(null)}
+						onClick={() => onChange([])}
 					>
-						모두 선택
+						모두 해제
 					</button>
 					<button type="button" className="icon-btn" onClick={onClose}>
 						닫기
