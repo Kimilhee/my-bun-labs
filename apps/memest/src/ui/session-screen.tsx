@@ -63,7 +63,7 @@ export function SessionScreen({ data, session, dispatch, onSettings }: Props) {
 	// biome-ignore lint/correctness/useExhaustiveDependencies: encounterKey가 카드 전환 신호
 	useEffect(() => {
 		setRecite({ status: 'idle' })
-		recRef.current?.stop()
+		recRef.current?.cancel() // 카드가 바뀌면 진행 중 인식은 채점 없이 폐기
 		recRef.current = null
 	}, [encounterKey])
 

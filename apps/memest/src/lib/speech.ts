@@ -28,11 +28,18 @@ function getCtor(): (new () => SR) | undefined {
 export const speechSupported = () =>
 	Boolean(getCtor()) && window.isSecureContext
 
-export type RecognizerHandle = { stop: () => void }
+export type RecognizerHandle = {
+	stop: () => void // 종료하고 onDone으로 채점
+	cancel: () => void // 조용히 폐기 (카드 전환 등 — onDone 호출 안 함)
+}
 
 /**
- * 한국어 연속 인식 시작. onUpdate는 인식 중간중간(확정+중간 결과 합친 전문),
- * onDone은 인식이 완전히 끝났을 때 최종 전문으로 호출된다.
+ * 한국어 연속 인식 시작. onUpdate는 인식 중간중간, onDone은 stop() 후 최종 전문으로 호출.
+ *
+ * 안드로이드 Chrome 대응 두 가지:
+ * - 매 이벤트마다 results 전체를 0부터 재조립 (안드로이드는 resultIndex를 항상 0으로
+ *   주고 전체를 반복 전송해서, 누적 방식은 같은 앞부분이 계속 이어붙는다)
+ * - 짧은 침묵에도 조기 종료되므로, stop() 전까지는 세그먼트를 저장하고 자동 재시작
  */
 export function startRecognition(
 	onUpdate: (transcript: string) => void,
@@ -46,27 +53,38 @@ export function startRecognition(
 	rec.continuous = true
 	rec.interimResults = true
 
-	let finalText = ''
-	let ended = false
+	let committed = '' // 자동 재시작 이전 세그먼트들의 누적
+	let current = '' // 현재 세그먼트 (매번 전체 재조립)
+	let stopping = false
+	let cancelled = false
+	const full = () => `${committed} ${current}`.trim()
 
 	rec.onresult = (e) => {
-		let interim = ''
-		for (let i = e.resultIndex; i < e.results.length; i++) {
+		let text = ''
+		for (let i = 0; i < e.results.length; i++) {
 			const r = e.results[i]
-			if (!r) continue
-			if (r.isFinal) finalText += r[0].transcript
-			else interim += r[0].transcript
+			if (r) text += r[0].transcript
 		}
-		onUpdate((finalText + interim).trim())
+		current = text
+		onUpdate(full())
 	}
 	rec.onerror = (e) => {
 		if (e.error === 'no-speech' || e.error === 'aborted') return // 무음/중단은 onend에서 처리
 		onError(e.error)
 	}
 	rec.onend = () => {
-		if (ended) return
-		ended = true
-		onDone(finalText.trim())
+		if (cancelled) return
+		committed = full()
+		current = ''
+		if (stopping) {
+			onDone(committed)
+			return
+		}
+		try {
+			rec.start() // 조기 종료 → 이어서 듣기
+		} catch {
+			onDone(committed)
+		}
 	}
 
 	try {
@@ -75,7 +93,16 @@ export function startRecognition(
 		onError('start-failed')
 		return null
 	}
-	return { stop: () => rec.stop() }
+	const end = (quiet: boolean) => {
+		stopping = true
+		cancelled = quiet
+		try {
+			rec.stop()
+		} catch {
+			// 이미 종료된 상태면 무시
+		}
+	}
+	return { stop: () => end(false), cancel: () => end(true) }
 }
 
 /** 통과음 "삥뽕" */
