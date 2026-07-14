@@ -361,6 +361,7 @@ export function SessionScreen({ data, session, dispatch, onSettings }: Props) {
 
 			{listOpen && (
 				<VerseListSheet
+					data={data}
 					session={session}
 					onRedo={(verseId) => {
 						dispatch({ type: 'redoVerse', verseId })

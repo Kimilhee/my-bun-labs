@@ -23,7 +23,8 @@ body {
 }
 
 .screen {
-	min-height: 100dvh;
+	height: 100dvh;
+	overflow: hidden; /* 본문만 스크롤, 하단 버튼은 항상 제자리 */
 	display: flex;
 	flex-direction: column;
 }
@@ -91,7 +92,13 @@ body {
 
 .answer {
 	justify-content: flex-start;
-	padding-top: 12vh;
+	padding-top: 28px;
+}
+
+.cue,
+.answer {
+	min-height: 0;
+	overflow-y: auto;
 }
 
 .ref {
@@ -483,10 +490,10 @@ body {
 	background: #263042;
 	border: none;
 	color: #9fb4d0;
-	font-size: 1.5rem;
+	font-size: 1.15rem;
 	line-height: 1;
-	border-radius: 12px;
-	padding: 10px 16px;
+	border-radius: 10px;
+	padding: 7px 11px;
 	cursor: pointer;
 }
 

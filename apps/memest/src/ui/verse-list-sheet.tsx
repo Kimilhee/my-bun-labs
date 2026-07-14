@@ -1,32 +1,29 @@
 import { useState } from 'react'
 import { verses } from '../lib/data'
 import { opening } from '../lib/hints'
-import type { Session, Verse } from '../lib/types'
+import { inScope } from '../lib/session'
+import type { AppData, Session } from '../lib/types'
 
 type Props = {
+	data: AppData
 	session: Session
 	onRedo: (verseId: string) => void
 	onClose: () => void
 }
 
 /**
- * 복습 범위 구절 리스트 (바텀시트).
- * 스포일러 방지: 이번 세션에서 이미 확인한 카드만 제목·첫머리 노출, 나머지는 장절만.
+ * 복습 범위 구절 리스트 (바텀시트). 현재 선택된 범위의 전체 구절을 보여준다.
+ * 스포일러 방지: 이번 세션에서 확인했거나 이전 세션에서 다뤘던 카드만 제목·첫머리를
+ * 노출하고, 현재 카드와 이번 세션에서 아직 안 나온 대기 카드는 장절만 보여준다.
  */
-export function VerseListSheet({ session, onRedo, onClose }: Props) {
+export function VerseListSheet({ data, session, onRedo, onClose }: Props) {
 	const [full, setFull] = useState(false)
 	const [expandedId, setExpandedId] = useState<string | null>(null)
 
-	const sessionIds = new Set([
-		...session.history.map((e) => e.verseId),
-		...session.queue,
-	])
-	const scope: Verse[] = session.scopeCodes
-		? verses.filter((v) =>
-				session.scopeCodes?.some((c) => v.id.startsWith(`${c}-`)),
-			)
-		: verses.filter((v) => sessionIds.has(v.id))
-	const doneIds = new Set(session.history.map((e) => e.verseId))
+	const scopeCodes = session.scopeCodes ?? data.settings.scopeParts
+	const scope = verses.filter((v) => inScope(v.id, scopeCodes))
+	const doneNow = new Set(session.history.map((e) => e.verseId))
+	const queued = new Set(session.queue)
 	const currentId = session.queue[0]
 
 	let lastPart = ''
@@ -41,6 +38,7 @@ export function VerseListSheet({ session, onRedo, onClose }: Props) {
 			<div className={`sheet ${full ? 'full' : 'half'}`}>
 				<div className="sheet-head">
 					<b>복습 구절</b>
+					<span className="note">{scope.length}개</span>
 					<span className="spacer" />
 					<button
 						type="button"
@@ -57,8 +55,11 @@ export function VerseListSheet({ session, onRedo, onClose }: Props) {
 					{scope.map((v) => {
 						const header = v.part !== lastPart ? v.part : null
 						lastPart = v.part
-						const isDone = doneIds.has(v.id)
 						const isCurrent = v.id === currentId
+						// 이번 세션에서 확인했거나, 이전 세션에서 다뤘고 지금 대기열에 없는 카드만 공개
+						const revealed =
+							!isCurrent &&
+							(doneNow.has(v.id) || (data.progress[v.id] && !queued.has(v.id)))
 						return (
 							<div key={v.id}>
 								{header && <div className="list-part-header">{header}</div>}
@@ -67,18 +68,19 @@ export function VerseListSheet({ session, onRedo, onClose }: Props) {
 										type="button"
 										className="list-row-main"
 										onClick={() =>
-											isDone && setExpandedId(expandedId === v.id ? null : v.id)
+											revealed &&
+											setExpandedId(expandedId === v.id ? null : v.id)
 										}
 									>
 										<span className="list-ref">{v.ref}</span>
 										{isCurrent && <span className="now-tag">지금</span>}
-										{isDone && !isCurrent && (
+										{revealed && (
 											<span className="list-preview">
 												{v.title} — {opening(v.text, 20)}
 											</span>
 										)}
 									</button>
-									{isDone && !isCurrent && (
+									{revealed && (
 										<button
 											type="button"
 											className="redo-btn"
@@ -89,7 +91,7 @@ export function VerseListSheet({ session, onRedo, onClose }: Props) {
 										</button>
 									)}
 								</div>
-								{expandedId === v.id && isDone && (
+								{expandedId === v.id && revealed && (
 									<div className="list-expanded">
 										<div className="hierarchy">
 											{v.midTitle ? `${v.midTitle} › ` : ''}
