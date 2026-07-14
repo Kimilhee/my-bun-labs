@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512">
+	<rect width="512" height="512" rx="96" fill="#111418"/>
+	<rect x="24" y="24" width="464" height="464" rx="80" fill="#1a212c"/>
+	<text x="256" y="300" font-size="240" text-anchor="middle" font-family="Apple Color Emoji, sans-serif">📖</text>
+	<text x="256" y="448" font-size="72" text-anchor="middle" fill="#2f6fed" font-family="-apple-system, sans-serif" font-weight="700">memest</text>
+</svg>
