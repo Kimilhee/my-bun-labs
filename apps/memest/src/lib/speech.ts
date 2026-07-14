@@ -60,12 +60,20 @@ export function startRecognition(
 	const full = () => `${committed} ${current}`.trim()
 
 	rec.onresult = (e) => {
-		let text = ''
+		// 안드로이드는 인식이 진행될 때마다 "지금까지의 누적 스냅샷"을 새 결과 항목으로
+		// 추가한다 ("그의" → "그의 아들" → "그의 아들 안에"…). 그대로 이어붙이면 앞부분이
+		// 중복되므로, 직전 조각의 확장이면 교체하고 축소면 버린다. (데스크톱은 조각이
+		// 서로 겹치지 않아 그대로 이어붙는 것과 동일하게 동작)
+		const parts: string[] = []
 		for (let i = 0; i < e.results.length; i++) {
-			const r = e.results[i]
-			if (r) text += r[0].transcript
+			const t = e.results[i]?.[0].transcript.trim()
+			if (!t) continue
+			const last = parts[parts.length - 1]
+			if (last && t.startsWith(last)) parts[parts.length - 1] = t
+			else if (last?.startsWith(t)) continue
+			else parts.push(t)
 		}
-		current = text
+		current = parts.join(' ')
 		onUpdate(full())
 	}
 	rec.onerror = (e) => {
