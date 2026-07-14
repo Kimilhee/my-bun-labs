@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { parts } from '../lib/data'
 
 type Props = {
@@ -6,22 +7,27 @@ type Props = {
 	onClose: () => void
 }
 
-/** 복습 범위 파트 선택 시트. 체크 즉시 적용된다. */
+/** 복습 범위 파트 선택 시트. [적용]을 눌러야 반영되고, [취소]·배경 탭은 폐기. */
 export function PartScopeSheet({ scope, onChange, onClose }: Props) {
 	const allCodes = parts.map((p) => p.code)
-	const selected = new Set(scope === null ? allCodes : scope)
+	const [selected, setSelected] = useState<Set<string>>(
+		() => new Set(scope === null ? allCodes : scope),
+	)
 	const verseCount = parts
 		.filter((p) => selected.has(p.code))
 		.reduce((a, p) => a + p.count, 0)
 
-	const emit = (next: Set<string>) =>
-		onChange(next.size === allCodes.length ? null : [...next])
+	const toggle = (code: string) =>
+		setSelected((prev) => {
+			const next = new Set(prev)
+			if (next.has(code)) next.delete(code)
+			else next.add(code)
+			return next
+		})
 
-	const toggle = (code: string) => {
-		const next = new Set(selected)
-		if (next.has(code)) next.delete(code)
-		else next.add(code)
-		emit(next)
+	const apply = () => {
+		onChange(selected.size === allCodes.length ? null : [...selected])
+		onClose()
 	}
 
 	return (
@@ -30,7 +36,7 @@ export function PartScopeSheet({ scope, onChange, onClose }: Props) {
 				type="button"
 				className="backdrop-hit"
 				onClick={onClose}
-				aria-label="닫기"
+				aria-label="취소"
 			/>
 			<div className="sheet full">
 				<div className="sheet-head">
@@ -42,12 +48,13 @@ export function PartScopeSheet({ scope, onChange, onClose }: Props) {
 					<button
 						type="button"
 						className="icon-btn"
-						onClick={() => onChange([])}
+						onClick={() =>
+							setSelected(
+								selected.size === 0 ? new Set(allCodes) : new Set<string>(),
+							)
+						}
 					>
-						모두 해제
-					</button>
-					<button type="button" className="icon-btn" onClick={onClose}>
-						닫기
+						{selected.size === 0 ? '모두 선택' : '모두 해제'}
 					</button>
 				</div>
 				<div className="sheet-list scope-list">
@@ -68,9 +75,22 @@ export function PartScopeSheet({ scope, onChange, onClose }: Props) {
 					))}
 					{selected.size === 0 && (
 						<p className="note scope-warn">
-							선택된 파트가 없어요 — 최소 1개는 선택해야 복습할 수 있습니다.
+							최소 1개 파트를 선택해야 적용할 수 있습니다.
 						</p>
 					)}
+				</div>
+				<div className="actions sheet-actions">
+					<button type="button" className="btn" onClick={onClose}>
+						취소
+					</button>
+					<button
+						type="button"
+						className="btn primary"
+						disabled={selected.size === 0}
+						onClick={apply}
+					>
+						적용 ({verseCount}구절)
+					</button>
 				</div>
 			</div>
 		</div>

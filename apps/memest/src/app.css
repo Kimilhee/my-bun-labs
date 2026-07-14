@@ -577,3 +577,10 @@ body {
 	color: #d9a54a;
 	padding: 12px 0;
 }
+
+/* 시트 내부 하단 버튼: 화면용 큰 여백 없이 */
+.sheet-actions {
+	margin-bottom: 0;
+	padding-bottom: max(16px, env(safe-area-inset-bottom));
+	border-top: 1px solid #242e3d;
+}
