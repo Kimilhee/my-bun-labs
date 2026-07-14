@@ -147,6 +147,8 @@ export function SettingsSheet({ data, dispatch, onClose }: Props) {
 					)}
 
 					{msg && <p className="note">{msg}</p>}
+
+					<p className="note version">memest v{__APP_VERSION__}</p>
 				</div>
 			</div>
 		</div>
