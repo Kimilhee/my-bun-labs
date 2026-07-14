@@ -10,6 +10,7 @@ import {
 	startRecognition,
 } from '../lib/speech'
 import type { AppData, Session } from '../lib/types'
+import { PartScopeSheet } from './part-scope-sheet'
 import { VerseListSheet } from './verse-list-sheet'
 
 type Props = {
@@ -54,6 +55,7 @@ function DiffText({ text, miss }: { text: string; miss: Set<number> }) {
 
 export function SessionScreen({ data, session, dispatch, onSettings }: Props) {
 	const [listOpen, setListOpen] = useState(false)
+	const [scopeOpen, setScopeOpen] = useState(false)
 	const [recite, setRecite] = useState<Recite>({ status: 'idle' })
 	const recRef = useRef<RecognizerHandle | null>(null)
 	const id = session.queue[0]
@@ -115,7 +117,13 @@ export function SessionScreen({ data, session, dispatch, onSettings }: Props) {
 	return (
 		<div className="screen">
 			<div className="top">
-				<span className="badge">{verse.part}</span>
+				<button
+					type="button"
+					className="badge badge-btn"
+					onClick={() => setScopeOpen(true)}
+				>
+					{verse.part} ▾
+				</button>
 				<span className="progress-label">
 					{doneCount + 1}/{total}
 				</span>
@@ -345,6 +353,13 @@ export function SessionScreen({ data, session, dispatch, onSettings }: Props) {
 
 			{listOpen && (
 				<VerseListSheet session={session} onClose={() => setListOpen(false)} />
+			)}
+			{scopeOpen && (
+				<PartScopeSheet
+					scope={data.settings.scopeParts}
+					onChange={(codes) => dispatch({ type: 'setScopeParts', codes })}
+					onClose={() => setScopeOpen(false)}
+				/>
 			)}
 		</div>
 	)

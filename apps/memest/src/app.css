@@ -534,3 +534,24 @@ body {
 	margin-top: 24px;
 	opacity: 0.7;
 }
+
+.badge-btn {
+	border: none;
+	cursor: pointer;
+	font-size: 0.8rem;
+}
+
+.scope-list {
+	padding: 6px 16px 24px;
+}
+
+.scope-row {
+	padding: 10px 0;
+	border-bottom: 1px solid #161c25;
+	color: #e8eaed;
+}
+
+.scope-warn {
+	color: #d9a54a;
+	padding: 12px 0;
+}

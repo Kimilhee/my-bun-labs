@@ -52,6 +52,7 @@ export type Settings = {
 	dailySize: number
 	firstPhraseMode: boolean // 첫소절 매칭: 처음 10글자(공백 제외)만 맞으면 통과
 	voiceRecitation: boolean // 끄면 [암송 시작] 대신 [말씀 확인](자가 확인)으로 동작
+	scopeParts: string[] | null // 복습 범위 파트 코드 목록 (null = 전체)
 }
 
 export type AppData = {

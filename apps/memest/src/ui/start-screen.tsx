@@ -2,8 +2,9 @@ import { useState } from 'react'
 import type { Action } from '../lib/app-state'
 import { parts, verses } from '../lib/data'
 import { todayStr } from '../lib/scheduler'
-import { buildIntensiveQueue } from '../lib/session'
+import { buildIntensiveQueue, inScope } from '../lib/session'
 import type { AppData } from '../lib/types'
+import { PartScopeSheet } from './part-scope-sheet'
 
 type Props = {
 	data: AppData
@@ -13,16 +14,26 @@ type Props = {
 
 export function StartScreen({ data, dispatch, onSettings }: Props) {
 	const [setupOpen, setSetupOpen] = useState(false)
+	const [scopeOpen, setScopeOpen] = useState(false)
 	const [codes, setCodes] = useState<string[]>([])
 	const [starredOnly, setStarredOnly] = useState(false)
 	const [capInput, setCapInput] = useState('')
 
 	const today = todayStr()
-	const dueCount = verses.filter(
+	const scope = data.settings.scopeParts
+	const scoped = verses.filter((v) => inScope(v.id, scope))
+	const dueCount = scoped.filter(
 		(v) => (data.progress[v.id]?.due ?? '9999') <= today && data.progress[v.id],
 	).length
-	const unseenCount = verses.filter((v) => !data.progress[v.id]).length
+	const unseenCount = scoped.filter((v) => !data.progress[v.id]).length
 	const starredCount = verses.filter((v) => v.starred).length
+	const scopeLabel =
+		scope === null
+			? '전체'
+			: parts
+					.filter((p) => scope.includes(p.code))
+					.map((p) => p.part)
+					.join(', ') || '없음'
 
 	const matched = buildIntensiveQueue(
 		codes,
@@ -66,10 +77,18 @@ export function StartScreen({ data, dispatch, onSettings }: Props) {
 						<span>별표</span>
 					</div>
 					<div className="stat">
-						<b>{verses.length}</b>
-						<span>전체</span>
+						<b>{scoped.length}</b>
+						<span>범위 내</span>
 					</div>
 				</div>
+
+				<button
+					type="button"
+					className="btn"
+					onClick={() => setScopeOpen(true)}
+				>
+					복습 범위: {scopeLabel} ▾
+				</button>
 
 				<button
 					type="button"
@@ -134,6 +153,14 @@ export function StartScreen({ data, dispatch, onSettings }: Props) {
 					</div>
 				)}
 			</div>
+
+			{scopeOpen && (
+				<PartScopeSheet
+					scope={scope}
+					onChange={(next) => dispatch({ type: 'setScopeParts', codes: next })}
+					onClose={() => setScopeOpen(false)}
+				/>
+			)}
 		</div>
 	)
 }

@@ -4,7 +4,12 @@ import type { AppData, Session } from './types'
 
 export const defaultData: AppData = {
 	progress: {},
-	settings: { dailySize: 20, firstPhraseMode: false, voiceRecitation: true },
+	settings: {
+		dailySize: 20,
+		firstPhraseMode: false,
+		voiceRecitation: true,
+		scopeParts: null,
+	},
 	session: null,
 }
 
@@ -25,6 +30,7 @@ export type Action =
 	| { type: 'setDailySize'; size: number }
 	| { type: 'setFirstPhraseMode'; on: boolean }
 	| { type: 'setVoiceRecitation'; on: boolean }
+	| { type: 'setScopeParts'; codes: string[] | null }
 	| { type: 'importData'; data: AppData }
 	| { type: 'resetProgress' }
 
@@ -120,6 +126,16 @@ export function reduce(data: AppData, action: Action): AppData {
 				...data,
 				settings: { ...data.settings, voiceRecitation: action.on },
 			}
+		case 'setScopeParts': {
+			const next = {
+				...data,
+				settings: { ...data.settings, scopeParts: action.codes },
+			}
+			// 진행 중인 일일 세션은 새 범위로 즉시 재구성 (집중 세션은 유지)
+			if (next.session?.mode === 'daily')
+				next.session = newSession('daily', buildDailyQueue(next), null)
+			return next
+		}
 		case 'importData':
 			return action.data
 		case 'resetProgress':
