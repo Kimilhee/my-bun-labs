@@ -140,15 +140,6 @@ export function SessionScreen({ data, session, dispatch, onSettings }: Props) {
 				>
 					⚙
 				</button>
-				<button
-					type="button"
-					className="icon-btn"
-					onClick={() => dispatch({ type: 'redoPrev' })}
-					disabled={!session.history.some((e) => e.verseId !== id)}
-					aria-label="이전 구절 다시"
-				>
-					⟲
-				</button>
 			</div>
 
 			{session.stage === 'cue' ? (
@@ -369,7 +360,14 @@ export function SessionScreen({ data, session, dispatch, onSettings }: Props) {
 			)}
 
 			{listOpen && (
-				<VerseListSheet session={session} onClose={() => setListOpen(false)} />
+				<VerseListSheet
+					session={session}
+					onRedo={(verseId) => {
+						dispatch({ type: 'redoVerse', verseId })
+						setListOpen(false)
+					}}
+					onClose={() => setListOpen(false)}
+				/>
 			)}
 			{scopeOpen && (
 				<PartScopeSheet

@@ -33,7 +33,7 @@ export type Action =
 	| { type: 'setVoiceRecitation'; on: boolean }
 	| { type: 'setScopeParts'; codes: string[] | null }
 	| { type: 'setAutoAdvance'; on: boolean }
-	| { type: 'redoPrev' } // 직전에 지나간 구절을 다시 현재 카드로
+	| { type: 'redoVerse'; verseId: string } // 지나온 구절을 다시 현재 카드로
 	| { type: 'importData'; data: AppData }
 	| { type: 'resetProgress' }
 
@@ -134,17 +134,12 @@ export function reduce(data: AppData, action: Action): AppData {
 				...data,
 				settings: { ...data.settings, autoAdvance: action.on },
 			}
-		case 'redoPrev': {
-			if (!s) return data
-			const cur = s.queue[0]
-			const prev = [...s.history]
-				.reverse()
-				.find((e) => e.verseId !== cur)?.verseId
-			if (!prev) return data
+		case 'redoVerse': {
+			if (!s || s.queue[0] === action.verseId) return data
 			// 이미 채점된 카드의 재도전이라 history에 있으니, 이번 회차는 counted=false로 처리됨
 			return {
 				...data,
-				session: { ...s, queue: [prev, ...s.queue], ...freshCard },
+				session: { ...s, queue: [action.verseId, ...s.queue], ...freshCard },
 			}
 		}
 		case 'setScopeParts': {

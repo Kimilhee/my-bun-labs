@@ -3,13 +3,17 @@ import { verses } from '../lib/data'
 import { opening } from '../lib/hints'
 import type { Session, Verse } from '../lib/types'
 
-type Props = { session: Session; onClose: () => void }
+type Props = {
+	session: Session
+	onRedo: (verseId: string) => void
+	onClose: () => void
+}
 
 /**
  * 복습 범위 구절 리스트 (바텀시트).
  * 스포일러 방지: 이번 세션에서 이미 확인한 카드만 제목·첫머리 노출, 나머지는 장절만.
  */
-export function VerseListSheet({ session, onClose }: Props) {
+export function VerseListSheet({ session, onRedo, onClose }: Props) {
 	const [full, setFull] = useState(false)
 	const [expandedId, setExpandedId] = useState<string | null>(null)
 
@@ -58,21 +62,33 @@ export function VerseListSheet({ session, onClose }: Props) {
 						return (
 							<div key={v.id}>
 								{header && <div className="list-part-header">{header}</div>}
-								<button
-									type="button"
-									className={`list-row ${isCurrent ? 'current' : ''}`}
-									onClick={() =>
-										isDone && setExpandedId(expandedId === v.id ? null : v.id)
-									}
-								>
-									<span className="list-ref">{v.ref}</span>
-									{isCurrent && <span className="now-tag">지금</span>}
+								<div className={`list-row ${isCurrent ? 'current' : ''}`}>
+									<button
+										type="button"
+										className="list-row-main"
+										onClick={() =>
+											isDone && setExpandedId(expandedId === v.id ? null : v.id)
+										}
+									>
+										<span className="list-ref">{v.ref}</span>
+										{isCurrent && <span className="now-tag">지금</span>}
+										{isDone && !isCurrent && (
+											<span className="list-preview">
+												{v.title} — {opening(v.text, 20)}
+											</span>
+										)}
+									</button>
 									{isDone && !isCurrent && (
-										<span className="list-preview">
-											{v.title} — {opening(v.text, 20)}
-										</span>
+										<button
+											type="button"
+											className="redo-btn"
+											onClick={() => onRedo(v.id)}
+											aria-label={`${v.ref} 다시 암송`}
+										>
+											⟲
+										</button>
 									)}
-								</button>
+								</div>
 								{expandedId === v.id && isDone && (
 									<div className="list-expanded">
 										<div className="hierarchy">
