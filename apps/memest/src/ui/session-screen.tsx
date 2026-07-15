@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { Action } from '../lib/app-state'
 import { mustVerse } from '../lib/data'
 import { hintLayers } from '../lib/hints'
-import { type Grade, gradeRecitation } from '../lib/match'
+import { followProgress, followWords } from '../lib/match'
 import {
 	playPass,
 	type RecognizerHandle,
@@ -20,43 +20,19 @@ type Props = {
 	onSettings: () => void
 }
 
+// 따라 열림 암송 상태: 음성이 도달한 만큼 본문을 공개하고,
+// 두 번 터치로 한 어절씩 수동 공개(manual)할 수 있다.
 type Recite =
 	| { status: 'idle' }
-	| { status: 'recording'; transcript: string }
-	| { status: 'result'; transcript: string; grade: Grade }
-
-/** 대조 결과: 못 맞춘 글자를 하이라이트해서 본문 표시 */
-function DiffText({ text, miss }: { text: string; miss: Set<number> }) {
-	const segs: { t: string; miss: boolean }[] = []
-	for (let i = 0; i < text.length; i++) {
-		const ch = text[i] ?? ''
-		const m = miss.has(i)
-		const last = segs[segs.length - 1]
-		if (last && last.miss === m) last.t += ch
-		else segs.push({ t: ch, miss: m })
-	}
-	let offset = 0
-	return (
-		<p className="text">
-			{segs.map((s) => {
-				const key = offset
-				offset += s.t.length
-				return s.miss ? (
-					<mark key={key} className="miss">
-						{s.t}
-					</mark>
-				) : (
-					<span key={key}>{s.t}</span>
-				)
-			})}
-		</p>
-	)
-}
+	| { status: 'recording'; revealed: number; manual: number }
+	| { status: 'result'; revealed: number; manual: number }
 
 export function SessionScreen({ data, session, dispatch, onSettings }: Props) {
 	const [listOpen, setListOpen] = useState(false)
 	const [scopeOpen, setScopeOpen] = useState(false)
 	const [recite, setRecite] = useState<Recite>({ status: 'idle' })
+	const reciteRef = useRef(recite)
+	reciteRef.current = recite
 	const recRef = useRef<RecognizerHandle | null>(null)
 	const id = session.queue[0]
 	const encounterKey = `${id}:${session.history.length}`
@@ -65,7 +41,7 @@ export function SessionScreen({ data, session, dispatch, onSettings }: Props) {
 	// biome-ignore lint/correctness/useExhaustiveDependencies: encounterKey가 카드 전환 신호
 	useEffect(() => {
 		setRecite({ status: 'idle' })
-		recRef.current?.cancel() // 카드가 바뀌면 진행 중 인식은 채점 없이 폐기
+		recRef.current?.cancel() // 진행 중 인식은 채점 없이 폐기
 		recRef.current = null
 	}, [encounterKey])
 
@@ -79,44 +55,66 @@ export function SessionScreen({ data, session, dispatch, onSettings }: Props) {
 	const total = doneCount + session.queue.length
 	const voiceOn = speechSupported() && data.settings.voiceRecitation
 
+	const words = followWords(verse.text, data.settings.firstPhraseMode)
+	const scopeEnd = words[words.length - 1]?.end ?? verse.text.length
+	const revealEnd = (n: number) =>
+		n > 0 ? (words[Math.min(n, words.length) - 1]?.end ?? 0) : 0
+
 	const startRecite = () => {
 		if (recite.status === 'recording') return
-		const firstPhrase = data.settings.firstPhraseMode
 		const autoAdvance = data.settings.autoAdvance
 		const handle = startRecognition(
-			(t) => setRecite({ status: 'recording', transcript: t }),
+			(t) => {
+				const matched = followProgress(words, t)
+				setRecite((prev) =>
+					prev.status === 'recording'
+						? { ...prev, revealed: Math.max(prev.revealed, matched) }
+						: prev,
+				)
+			},
 			(finalT) => {
 				recRef.current = null
-				const grade = gradeRecitation(verse.text, finalT, firstPhrase)
-				setRecite({ status: 'result', transcript: finalT, grade })
-				if (grade.pass) {
+				const prev = reciteRef.current
+				const base =
+					prev.status === 'recording' ? prev : { revealed: 0, manual: 0 }
+				const revealed = Math.max(base.revealed, followProgress(words, finalT))
+				setRecite({ status: 'result', revealed, manual: base.manual })
+				if (revealed >= words.length) {
 					playPass()
-					// 완벽 일치 + 자동넘김 설정일 때만 자동 진행.
-					// (옛말 어절은 75% 이상이면 완벽으로 취급 — STT가 옛말을 잘 못 받아적음)
-					if (grade.perfect && autoAdvance) {
+					if (base.manual === 0 && autoAdvance)
 						window.setTimeout(
 							() => dispatch({ type: 'next', wrong: false }),
 							1100,
 						)
-					}
 				}
 			},
 			() => setRecite({ status: 'idle' }),
 		)
 		if (handle) {
 			recRef.current = handle
-			setRecite({ status: 'recording', transcript: '' })
+			setRecite({ status: 'recording', revealed: 0, manual: 0 })
 		}
 	}
 	const stopRecite = () => recRef.current?.stop()
+	const revealOne = () =>
+		setRecite((prev) =>
+			prev.status === 'recording'
+				? {
+						...prev,
+						revealed: Math.min(prev.revealed + 1, words.length),
+						manual: prev.manual + 1,
+					}
+				: prev,
+		)
 
-	const auto = data.settings.autoAdvance
-	const panelResult =
-		recite.status === 'result' && !(recite.grade.perfect && auto)
-			? recite
-			: null
-	const passResult =
-		recite.status === 'result' && recite.grade.perfect && auto ? recite : null
+	const resultComplete =
+		recite.status === 'result' && recite.revealed >= words.length
+	const passOverlay =
+		recite.status === 'result' &&
+		resultComplete &&
+		recite.manual === 0 &&
+		data.settings.autoAdvance
+	const panelResult = recite.status === 'result' && !passOverlay ? recite : null
 
 	return (
 		<div className="screen">
@@ -151,42 +149,23 @@ export function SessionScreen({ data, session, dispatch, onSettings }: Props) {
 								<b>{verse.title}</b>
 							</div>
 							<div className="ref">{verse.ref}</div>
-							<DiffText
-								text={verse.text}
-								miss={panelResult.grade.missIndices}
-							/>
-							<p className="transcript">
-								🎤{' '}
-								{panelResult.grade.spokenSegs.length === 0
-									? '(음성이 인식되지 않았어요)'
-									: (() => {
-											let offset = 0
-											return panelResult.grade.spokenSegs.map((s) => {
-												const key = offset
-												offset += s.text.length
-												if (s.kind === 'miss')
-													return (
-														<mark key={key} className="miss">
-															{s.text}
-														</mark>
-													)
-												if (s.kind === 'fixed')
-													return (
-														<span key={key} className="fixed">
-															{s.text}
-														</span>
-													)
-												return <span key={key}>{s.text}</span>
-											})
-										})()}
+							<p className="text">
+								{verse.text.slice(0, revealEnd(panelResult.revealed))}
+								{!resultComplete && (
+									<mark className="miss">
+										{verse.text.slice(
+											revealEnd(panelResult.revealed),
+											scopeEnd,
+										)}
+									</mark>
+								)}
+								{verse.text.slice(scopeEnd)}
 							</p>
 							<p className="note">
-								일치율 {Math.round(panelResult.grade.similarity * 100)}%
-								{panelResult.grade.perfect
-									? ' · 완벽 ✅'
-									: panelResult.grade.pass
-										? ' · 통과 기준은 넘었어요'
-										: ''}
+								{panelResult.revealed}/{words.length} 어절
+								{panelResult.manual > 0 &&
+									` · 직접 연 어절 ${panelResult.manual}개`}
+								{resultComplete && ' · 완주 ✅'}
 							</p>
 						</div>
 						<div className="actions three">
@@ -209,7 +188,34 @@ export function SessionScreen({ data, session, dispatch, onSettings }: Props) {
 								className="btn primary"
 								onClick={() => dispatch({ type: 'next', wrong: false })}
 							>
-								{panelResult.grade.pass ? '다음' : '맞은 걸로'}
+								{resultComplete ? '다음' : '맞은 걸로'}
+							</button>
+						</div>
+					</>
+				) : recite.status === 'recording' ? (
+					<>
+						<button
+							type="button"
+							className="cue follow-area"
+							onDoubleClick={revealOne}
+						>
+							<span className="ref">{verse.ref}</span>
+							<span className="text follow-text">
+								{verse.text.slice(0, revealEnd(recite.revealed))}
+								<span className="follow-cursor">▏</span>
+							</span>
+							<span className="note">
+								암송하면 본문이 따라 열립니다 · 두 번 터치 = 한 어절 열기
+							</span>
+						</button>
+						<div className="actions">
+							<span />
+							<button
+								type="button"
+								className="btn primary recording"
+								onClick={stopRecite}
+							>
+								🎤 탭하여 채점
 							</button>
 						</div>
 					</>
@@ -231,14 +237,6 @@ export function SessionScreen({ data, session, dispatch, onSettings }: Props) {
 									<span className="hint-content">{h.content}</span>
 								</div>
 							))}
-							{recite.status === 'recording' && (
-								<div className="recite-live">
-									<span className="rec-dot" /> 듣는 중…
-									{recite.transcript && (
-										<div className="transcript">{recite.transcript}</div>
-									)}
-								</div>
-							)}
 						</div>
 						<button
 							type="button"
@@ -268,13 +266,10 @@ export function SessionScreen({ data, session, dispatch, onSettings }: Props) {
 							{voiceOn ? (
 								<button
 									type="button"
-									className={`btn primary ${recite.status === 'recording' ? 'recording' : ''}`}
-									onClick={() =>
-										recite.status === 'recording' ? stopRecite() : startRecite()
-									}
+									className="btn primary"
+									onClick={startRecite}
 								>
-									🎤{' '}
-									{recite.status === 'recording' ? '탭하여 채점' : '암송 시작'}
+									🎤 암송 시작
 								</button>
 							) : (
 								<button
@@ -352,7 +347,7 @@ export function SessionScreen({ data, session, dispatch, onSettings }: Props) {
 				</>
 			)}
 
-			{passResult && (
+			{passOverlay && (
 				<div className="pass-overlay">
 					<div className="pass-circle">⭕</div>
 					<div className="pass-title">{verse.title}</div>

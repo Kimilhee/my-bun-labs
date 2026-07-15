@@ -261,11 +261,35 @@ body {
 	animation: pulse 1s infinite;
 }
 
-.transcript {
-	color: #9fb4d0;
-	font-size: 0.9rem;
-	word-break: keep-all;
-	max-width: 100%;
+/* 따라 열림: 암송한 만큼 본문이 열리는 영역 (두 번 터치 = 한 어절) */
+.follow-area {
+	flex: 1;
+	min-height: 0;
+	overflow-y: auto;
+	display: flex;
+	flex-direction: column;
+	justify-content: flex-start;
+	align-items: center;
+	gap: 16px;
+	padding: 28px 24px;
+	background: none;
+	border: none;
+	color: inherit;
+	font: inherit;
+	cursor: pointer;
+	text-align: center;
+	touch-action: manipulation; /* 더블탭 확대 방지 */
+	user-select: none;
+	-webkit-user-select: none;
+}
+
+.follow-text {
+	min-height: 3.4em;
+}
+
+.follow-cursor {
+	color: #2f6fed;
+	animation: pulse 1s infinite;
 }
 
 .miss {

@@ -23,8 +23,8 @@ data/           # verses.json(카드 495개)·parts.json(파트 16개) — conve
 scripts/convert-btt.ts
 src/
   lib/          # 순수 로직: types, data, scheduler(Leitner), session(큐),
-                #   app-state(리듀서), hints(초성), match(자모 LCS 채점),
-                #   archaic(옛말 사전), speech(Web Speech 래퍼), storage
+                #   app-state(리듀서), hints(초성), match(자모 LCS 따라 열림),
+                #   speech(Web Speech 래퍼), storage
   ui/           # 화면: session-screen(핵심), start-screen, 시트들
 docs/           # PRD / ADR / design
 ```
@@ -35,8 +35,7 @@ docs/           # PRD / ADR / design
 
 - **배포되는 변경마다 `package.json` version을 올린다** (수정=패치, 기능=마이너). 버전은 설정 시트 하단에 표시되며, 사용자가 폰에서 배포 반영을 확인하는 수단이다. 문서만 바꿀 땐 안 올려도 된다.
 - **검증 루틴**: `biome check --write` → `typecheck` → `build` + 로직 변경 시 `bun -e`로 리듀서/채점 헤드리스 테스트. UI는 사용자가 폰에서 실사용 확인.
-- **옛말 오인식 제보가 오면** `src/lib/archaic.ts`에 단어/어미를 추가한다 (근거: ADR-9).
 - 안드로이드 STT의 괴상한 동작(중복·조기종료)은 `lib/speech.ts`에 우회가 모여 있다 (ADR-10). 함부로 단순화하지 말 것.
-- 채점 임계값(일반 80%/옛말 50%/완벽 75%, 세션 85%/첫소절 80%)은 `lib/match.ts` 상단 상수. 조정 요청이 잦은 지점.
+- 암송은 정밀 채점이 아니라 **따라 열림**(ADR-14): 도달 임계값은 `lib/match.ts`의 `FOLLOW_THRESHOLD`(자모 20%). 조정 요청이 잦은 지점.
 - 카드는 (파트,제목,장절)이 유일 단위 — 장절 dedupe 금지 (ADR-6).
 - localStorage 스키마를 바꿀 때는 `storage.ts`의 기본값 병합으로 하위호환을 지킨다.
