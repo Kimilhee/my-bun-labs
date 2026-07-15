@@ -71,6 +71,8 @@ export function SessionScreen({ data, session, dispatch, onSettings }: Props) {
 						? { ...prev, revealed: Math.max(prev.revealed, matched) }
 						: prev,
 				)
+				// 끝까지 열렸으면 기다리지 않고 즉시 인식 종료 → 자동 채점
+				if (matched >= words.length) recRef.current?.stop()
 			},
 			(finalT) => {
 				recRef.current = null
@@ -168,6 +170,13 @@ export function SessionScreen({ data, session, dispatch, onSettings }: Props) {
 								{resultComplete && ' · 완주 ✅'}
 							</p>
 						</div>
+						<button
+							type="button"
+							className="list-handle"
+							onClick={() => setListOpen(true)}
+						>
+							≡ 지나온 구절
+						</button>
 						<div className="actions three">
 							<button
 								type="button"
@@ -207,6 +216,13 @@ export function SessionScreen({ data, session, dispatch, onSettings }: Props) {
 							<span className="note">
 								암송하면 본문이 따라 열립니다 · 두 번 터치 = 한 어절 열기
 							</span>
+						</button>
+						<button
+							type="button"
+							className="list-handle"
+							onClick={() => setListOpen(true)}
+						>
+							≡ 지나온 구절
 						</button>
 						<div className="actions">
 							<span />
