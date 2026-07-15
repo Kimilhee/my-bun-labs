@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - "apps/memest/**"
+      - "bun.lock"
       - ".github/workflows/deploy-memest.yml"
   workflow_dispatch:
 
