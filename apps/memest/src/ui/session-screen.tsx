@@ -1,4 +1,9 @@
-import { useEffect, useRef, useState } from 'react'
+import {
+	type TouchEvent as ReactTouchEvent,
+	useEffect,
+	useRef,
+	useState,
+} from 'react'
 import type { Action } from '../lib/app-state'
 import { mustVerse } from '../lib/data'
 import { hintLayers } from '../lib/hints'
@@ -33,6 +38,7 @@ export function SessionScreen({ data, session, dispatch, onSettings }: Props) {
 	const [revealed, setRevealed] = useState(0) // 더블탭으로 연 어절 수
 	const [voice, setVoice] = useState<Voice>({ status: 'idle' })
 	const recRef = useRef<RecognizerHandle | null>(null)
+	const touchStart = useRef<{ x: number; y: number } | null>(null) // 스와이프 시작점
 	const id = session.queue[0]
 	const encounterKey = `${id}:${session.history.length}`
 
@@ -69,6 +75,10 @@ export function SessionScreen({ data, session, dispatch, onSettings }: Props) {
 			},
 			(finalT) => {
 				recRef.current = null
+				if (!finalT.trim()) {
+					setVoice({ status: 'idle' }) // 말 없이 뗐으면 조용히 복귀
+					return
+				}
 				const m = firstPhraseMatch(verse.text, finalT)
 				if (m.pass) {
 					playPass()
@@ -88,6 +98,32 @@ export function SessionScreen({ data, session, dispatch, onSettings }: Props) {
 		}
 	}
 	const stopVoice = () => recRef.current?.stop()
+
+	// 본문 좌우 스와이프: ← 다음 / → 직전 구절 다시
+	const onTouchStart = (e: ReactTouchEvent) => {
+		const t = e.touches[0]
+		touchStart.current = t ? { x: t.clientX, y: t.clientY } : null
+	}
+	const swipeDir = (e: ReactTouchEvent): 'left' | 'right' | null => {
+		const start = touchStart.current
+		touchStart.current = null
+		const t = e.changedTouches[0]
+		if (!start || !t) return null
+		const dx = t.clientX - start.x
+		const dy = t.clientY - start.y
+		// 세로 스크롤과 구분: 가로 이동이 충분히 크고 지배적일 때만
+		if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 2) return null
+		return dx < 0 ? 'left' : 'right'
+	}
+	const prevId = [...session.history]
+		.reverse()
+		.find((e) => e.verseId !== id)?.verseId
+	const onAnswerSwipe = (e: ReactTouchEvent) => {
+		const dir = swipeDir(e)
+		if (dir === 'left') dispatch({ type: 'next', wrong: false })
+		else if (dir === 'right' && prevId)
+			dispatch({ type: 'redoVerse', verseId: prevId })
+	}
 
 	return (
 		<div className="screen">
@@ -142,7 +178,7 @@ export function SessionScreen({ data, session, dispatch, onSettings }: Props) {
 						)}
 						{voice.status === 'recording' && (
 							<span className="note recording-note">
-								● 듣는 중 — 첫머리를 암송하세요
+								● 듣는 중 — 누른 채 첫머리를 암송하고, 떼면 바로 평가해요
 							</span>
 						)}
 						{voice.status === 'fail' && (
@@ -184,12 +220,14 @@ export function SessionScreen({ data, session, dispatch, onSettings }: Props) {
 						{canSpeak && (
 							<button
 								type="button"
-								className={`btn ${voice.status === 'recording' ? 'recording' : ''}`}
-								onClick={() =>
-									voice.status === 'recording' ? stopVoice() : startVoice()
-								}
+								className={`btn hold ${voice.status === 'recording' ? 'recording' : ''}`}
+								onPointerDown={startVoice}
+								onPointerUp={stopVoice}
+								onPointerLeave={stopVoice}
+								onPointerCancel={stopVoice}
+								onContextMenu={(e) => e.preventDefault()}
 							>
-								🎤 {voice.status === 'recording' ? '중지' : '첫머리 암송'}
+								{voice.status === 'recording' ? '● 듣는 중' : '🎤 첫머리 암송'}
 							</button>
 						)}
 						<button
@@ -203,7 +241,11 @@ export function SessionScreen({ data, session, dispatch, onSettings }: Props) {
 				</>
 			) : (
 				<>
-					<div className="answer">
+					<div
+						className="answer"
+						onTouchStart={onTouchStart}
+						onTouchEnd={onAnswerSwipe}
+					>
 						<div className="hierarchy">
 							{verse.part}
 							{verse.midTitle ? ` › ${verse.midTitle}` : ''} ›{' '}

@@ -262,6 +262,14 @@ body {
 	}
 }
 
+/* 홀드(누르는 동안 녹음) 버튼: 길게 눌러도 스크롤·텍스트 선택·롱프레스 메뉴가 안 뜨게 */
+.btn.hold {
+	touch-action: none;
+	user-select: none;
+	-webkit-user-select: none;
+	-webkit-touch-callout: none;
+}
+
 .btn.recording {
 	background: #b3402f;
 	color: #fff;
