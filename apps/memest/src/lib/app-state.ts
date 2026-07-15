@@ -4,13 +4,7 @@ import type { AppData, Session } from './types'
 
 export const defaultData: AppData = {
 	progress: {},
-	settings: {
-		dailySize: 20,
-		firstPhraseMode: false,
-		voiceRecitation: true,
-		scopeParts: null,
-		autoAdvance: true,
-	},
+	settings: { dailySize: 20, scopeParts: null },
 	session: null,
 }
 
@@ -29,10 +23,7 @@ export type Action =
 	| { type: 'next'; wrong: boolean }
 	| { type: 'quitSession' }
 	| { type: 'setDailySize'; size: number }
-	| { type: 'setFirstPhraseMode'; on: boolean }
-	| { type: 'setVoiceRecitation'; on: boolean }
 	| { type: 'setScopeParts'; codes: string[] | null }
-	| { type: 'setAutoAdvance'; on: boolean }
 	| { type: 'redoVerse'; verseId: string } // 지나온 구절을 다시 현재 카드로
 	| { type: 'importData'; data: AppData }
 	| { type: 'resetProgress' }
@@ -118,21 +109,6 @@ export function reduce(data: AppData, action: Action): AppData {
 			return {
 				...data,
 				settings: { ...data.settings, dailySize: Math.max(1, action.size) },
-			}
-		case 'setFirstPhraseMode':
-			return {
-				...data,
-				settings: { ...data.settings, firstPhraseMode: action.on },
-			}
-		case 'setVoiceRecitation':
-			return {
-				...data,
-				settings: { ...data.settings, voiceRecitation: action.on },
-			}
-		case 'setAutoAdvance':
-			return {
-				...data,
-				settings: { ...data.settings, autoAdvance: action.on },
 			}
 		case 'redoVerse': {
 			if (!s || s.queue[0] === action.verseId) return data

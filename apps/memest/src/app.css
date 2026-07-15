@@ -25,11 +25,11 @@ body {
 .app {
 	max-width: 520px;
 	margin: 0 auto;
-	height: 100dvh;
+	height: 100%; /* dvh는 기기별 편차가 있어 100% 체인 사용 */
 }
 
 .screen {
-	height: 100dvh;
+	height: 100%;
 	overflow: hidden; /* 본문만 스크롤, 하단 버튼은 항상 제자리 */
 	display: flex;
 	flex-direction: column;
@@ -224,53 +224,7 @@ body {
 	cursor: pointer;
 }
 
-.link-btn {
-	background: none;
-	border: none;
-	color: #66738a;
-	font-size: 0.8rem;
-	text-decoration: underline;
-	padding: 0 0 14px;
-	cursor: pointer;
-}
-
-/* ── 음성 암송 ── */
-.btn.hold {
-	touch-action: none;
-	user-select: none;
-	-webkit-user-select: none;
-}
-
-.btn.recording {
-	background: #b3402f;
-	animation: pulse 1.2s ease-in-out infinite;
-}
-
-@keyframes pulse {
-	50% {
-		opacity: 0.75;
-	}
-}
-
-.recite-live {
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	gap: 6px;
-	color: #d9a54a;
-	font-size: 0.9rem;
-}
-
-.rec-dot {
-	width: 10px;
-	height: 10px;
-	border-radius: 50%;
-	background: #e05d4b;
-	display: inline-block;
-	animation: pulse 1s infinite;
-}
-
-/* 따라 열림: 암송한 만큼 본문이 열리는 영역 (두 번 터치 = 한 어절) */
+/* 문제 영역: 두 번 터치 = 다음 어절 열기 */
 .follow-area {
 	flex: 1;
 	min-height: 0;
@@ -294,60 +248,11 @@ body {
 }
 
 .follow-text {
-	min-height: 3.4em;
-}
-
-.follow-cursor {
-	color: #2f6fed;
-	animation: pulse 1s infinite;
-}
-
-.miss {
-	background: rgba(224, 93, 75, 0.28);
-	color: #ff9d8d;
-	border-radius: 3px;
-}
-
-/* 옛말 교정: STT 오기를 본문 단어로 바꿔 보여준 부분 */
-.fixed {
-	color: #7ec699;
+	max-width: 100%;
 }
 
 .actions.three {
 	grid-template-columns: 1fr 1fr 1fr;
-}
-
-.pass-overlay {
-	position: fixed;
-	inset: 0;
-	z-index: 20;
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	justify-content: center;
-	gap: 12px;
-	background: rgba(17, 20, 24, 0.82);
-}
-
-.pass-circle {
-	font-size: 6rem;
-	animation: pop 0.35s ease-out;
-}
-
-.pass-title {
-	color: #9fb4d0;
-	font-size: 1.1rem;
-}
-
-@keyframes pop {
-	0% {
-		transform: scale(0.4);
-		opacity: 0;
-	}
-	100% {
-		transform: scale(1);
-		opacity: 1;
-	}
 }
 
 /* ── 시작 화면 ── */

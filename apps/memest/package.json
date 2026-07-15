@@ -1,6 +1,6 @@
 {
 	"name": "memest",
-	"version": "0.1.1",
+	"version": "0.2.0",
 	"private": true,
 	"type": "module",
 	"scripts": {
@@ -17,7 +17,6 @@
 		"@types/bun": "^1.2.0",
 		"@types/react": "^19.1.0",
 		"@types/react-dom": "^19.1.0",
-		"@vitejs/plugin-basic-ssl": "^2.3.0",
 		"@vitejs/plugin-react": "^4.4.0",
 		"vite": "^6.3.0",
 		"vite-plugin-pwa": "^1.3.0",

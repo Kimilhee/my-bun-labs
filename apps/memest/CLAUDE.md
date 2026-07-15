@@ -8,7 +8,7 @@
 ## 명령
 
 ```bash
-bun dev            # dev 서버 (--host + 자체서명 HTTPS — 폰 마이크 테스트용)
+bun dev            # dev 서버 (--host — 폰에서 같은 Wi-Fi로 접속 가능)
 bun run build      # 프로덕션 빌드 (base=/my-bun-labs/, PWA 프리캐시 생성)
 bun run typecheck  # tsc --noEmit
 bun run convert    # BTT 원본 → data/verses.json, data/parts.json 재생성
@@ -23,8 +23,7 @@ data/           # verses.json(카드 495개)·parts.json(파트 16개) — conve
 scripts/convert-btt.ts
 src/
   lib/          # 순수 로직: types, data, scheduler(Leitner), session(큐),
-                #   app-state(리듀서), hints(초성), match(자모 LCS 따라 열림),
-                #   speech(Web Speech 래퍼), storage
+                #   app-state(리듀서), hints(초성), match(어절 토큰화), storage
   ui/           # 화면: session-screen(핵심), start-screen, 시트들
 docs/           # PRD / ADR / design
 ```
@@ -35,7 +34,6 @@ docs/           # PRD / ADR / design
 
 - **배포되는 변경마다 `package.json` version을 올린다** (수정=패치, 기능=마이너). 버전은 설정 시트 하단에 표시되며, 사용자가 폰에서 배포 반영을 확인하는 수단이다. 문서만 바꿀 땐 안 올려도 된다.
 - **검증 루틴**: `biome check --write` → `typecheck` → `build` + 로직 변경 시 `bun -e`로 리듀서/채점 헤드리스 테스트. UI는 사용자가 폰에서 실사용 확인.
-- 안드로이드 STT의 괴상한 동작(중복·조기종료)은 `lib/speech.ts`에 우회가 모여 있다 (ADR-10). 함부로 단순화하지 말 것.
-- 암송은 정밀 채점이 아니라 **따라 열림**(ADR-14): 도달 임계값은 `lib/match.ts`의 `FOLLOW_THRESHOLD`(자모 20%). 조정 요청이 잦은 지점.
+- **음성인식은 재도입하지 말 것** — v0.0~0.1에서 두 방식(대조 채점, 따라 열림)을 시도하고 정확도 문제로 제거했다 (ADR-9·14·15). 암송 확인은 더블탭 어절 열기 + 자가 판정.
 - 카드는 (파트,제목,장절)이 유일 단위 — 장절 dedupe 금지 (ADR-6).
 - localStorage 스키마를 바꿀 때는 `storage.ts`의 기본값 병합으로 하위호환을 지킨다.
