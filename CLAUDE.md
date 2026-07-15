@@ -70,7 +70,7 @@ cd <name>
 
 새 디테일이 쌓이면 여기에 한 줄씩 추가. 이 섹션이 리포의 진입점.
 
-- `apps/memest/docs/design.md` — 성경 암송 복습 게임(memest) 설계서. 음성(STT) 암송 채점 + Leitner 스케줄링, GitHub Pages 배포(PWA).
+- `apps/memest/CLAUDE.md` — 성경 암송 복습 게임(memest) 진입점. 음성(STT) 암송 채점 + Leitner 스케줄링, GitHub Pages 배포(PWA). 상세: `docs/PRD.md`(요구사항) · `docs/ADR.md`(결정 근거) · `docs/design.md`(구현 설계).
 
 ## 7. AI agent 사용에 대해
 
