@@ -35,7 +35,15 @@ export function choseong(s: string): string {
 export const opening = (text: string, len = 16): string =>
 	text.length <= len ? text : `${text.slice(0, len)}…`
 
-export const firstWord = (text: string): string => text.split(/\s+/)[0] ?? ''
+/** 첫머리 힌트: 기본 2어절, 두 어절이 (공백 제외) 5자 이내면 3어절 */
+export function firstWords(text: string): string {
+	const words = text.split(/\s+/).filter(Boolean)
+	const twoLen = words
+		.slice(0, 2)
+		.join('')
+		.replace(/[^가-힣0-9a-zA-Z]/g, '').length
+	return words.slice(0, twoLen <= 5 ? 3 : 2).join(' ')
+}
 
 export type HintLayer = { label: string; content: string }
 
@@ -52,6 +60,6 @@ export function hintLayers(
 		layers.push({ label: '제목', content: title })
 	}
 	layers.push({ label: '초성', content: choseong(opening(verse.text)) })
-	layers.push({ label: '첫 어절', content: `${firstWord(verse.text)} …` })
+	layers.push({ label: '첫머리', content: `${firstWords(verse.text)} …` })
 	return layers
 }

@@ -255,6 +255,54 @@ body {
 	grid-template-columns: 1fr 1fr 1fr;
 }
 
+/* ── 첫머리 음성 확인 ── */
+@keyframes pulse {
+	50% {
+		opacity: 0.6;
+	}
+}
+
+.btn.recording {
+	background: #b3402f;
+	color: #fff;
+	animation: pulse 1.2s ease-in-out infinite;
+}
+
+.recording-note {
+	color: #d9a54a;
+	animation: pulse 1s infinite;
+}
+
+.fail-note {
+	color: #ff9d8d;
+}
+
+.pass-overlay {
+	position: fixed;
+	inset: 0;
+	z-index: 20;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: rgba(17, 20, 24, 0.75);
+}
+
+.pass-circle {
+	font-size: 6rem;
+	animation: pop 0.3s ease-out;
+}
+
+@keyframes pop {
+	0% {
+		transform: scale(0.4);
+		opacity: 0;
+	}
+	100% {
+		transform: scale(1);
+		opacity: 1;
+	}
+}
+
 /* ── 시작 화면 ── */
 .start-body {
 	display: flex;

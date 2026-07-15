@@ -23,7 +23,8 @@ data/           # verses.json(카드 495개)·parts.json(파트 16개) — conve
 scripts/convert-btt.ts
 src/
   lib/          # 순수 로직: types, data, scheduler(Leitner), session(큐),
-                #   app-state(리듀서), hints(초성), match(어절 토큰화), storage
+                #   app-state(리듀서), hints(초성), match(어절·첫머리 매칭),
+                #   speech(Web Speech 래퍼 — 안드로이드 우회 포함), storage
   ui/           # 화면: session-screen(핵심), start-screen, 시트들
 docs/           # PRD / ADR / design
 ```
@@ -32,8 +33,8 @@ docs/           # PRD / ADR / design
 
 ## 이 앱의 규칙
 
-- **배포되는 변경마다 `package.json` version을 올린다** (수정=패치, 기능=마이너). 버전은 설정 시트 하단에 표시되며, 사용자가 폰에서 배포 반영을 확인하는 수단이다. 문서만 바꿀 땐 안 올려도 된다.
+- **배포되는 변경마다 `package.json` version의 패치(맨 뒤) 숫자만 올린다.** 마이너/메이저는 사용자가 명시적으로 허락할 때만. 버전은 설정 시트 하단에 표시되며, 사용자가 폰에서 배포 반영을 확인하는 수단이다. 문서만 바꿀 땐 안 올려도 된다.
 - **검증 루틴**: `biome check --write` → `typecheck` → `build` + 로직 변경 시 `bun -e`로 리듀서/채점 헤드리스 테스트. UI는 사용자가 폰에서 실사용 확인.
-- **음성인식은 재도입하지 말 것** — v0.0~0.1에서 두 방식(대조 채점, 따라 열림)을 시도하고 정확도 문제로 제거했다 (ADR-9·14·15). 암송 확인은 더블탭 어절 열기 + 자가 판정.
+- **전체 암송의 음성 채점은 재도입하지 말 것** — v0.0~0.1에서 두 방식(대조 채점, 따라 열림)을 시도하고 정확도 문제로 제거했다 (ADR-9·14·15). 허용된 음성 기능은 **첫머리(10글자 어절) 확인**뿐: 글자 단위 50% (ADR-16). 암송 본체는 더블탭 어절 열기 + 자가 판정.
 - 카드는 (파트,제목,장절)이 유일 단위 — 장절 dedupe 금지 (ADR-6).
 - localStorage 스키마를 바꿀 때는 `storage.ts`의 기본값 병합으로 하위호환을 지킨다.
