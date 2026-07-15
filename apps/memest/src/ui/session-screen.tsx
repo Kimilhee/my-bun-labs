@@ -156,15 +156,11 @@ export function SessionScreen({ data, session, dispatch, onSettings }: Props) {
 						className="cue follow-area"
 						onDoubleClick={revealOne}
 					>
-						<span className="ref">{verse.ref}</span>
-						{level !== 'D' && (
-							<span className="cue-title">
-								{verse.midTitle && (
-									<span className="mid">{verse.midTitle} · </span>
-								)}
-								{verse.title}
-							</span>
+						{level !== 'D' && verse.midTitle && (
+							<span className="cue-mid">{verse.midTitle}</span>
 						)}
+						<span className="ref">{verse.ref}</span>
+						{level !== 'D' && <span className="cue-title">{verse.title}</span>}
 						{shown.map((h) => (
 							<span className="hint-row" key={h.label}>
 								<span className="hint-label">{h.label}</span>

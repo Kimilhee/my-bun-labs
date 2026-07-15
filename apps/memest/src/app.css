@@ -119,8 +119,12 @@ body {
 	color: #9fb4d0;
 }
 
-.cue-title .mid {
+/* 중제목: 말씀(장절) 아래가 아니라 단서 영역 상단 왼쪽 모서리에 */
+.cue-mid {
+	align-self: flex-start;
 	color: #66738a;
+	font-size: 0.82rem;
+	text-align: left;
 }
 
 .hint-row {
@@ -168,8 +172,8 @@ body {
 }
 
 /* ── 하단 버튼 ── */
-/* 하단 스택 순서: 보조 링크 → 버튼 → 지나온 구절(맨 아래, 드물게 씀).
-   버튼 상향은 핸들 영역의 높이로 확보 — 핸들이 화면 밖으로 밀리지 않게 */
+/* 하단 스택 순서: 버튼 → 지나온 구절 핸들(맨 아래).
+   핸들 영역이 화면의 15%를 고정 점유 → 버튼은 항상 하단 15% 지점에 정적으로 위치 */
 .actions {
 	display: grid;
 	grid-template-columns: 1fr 1fr;
@@ -181,8 +185,11 @@ body {
 
 .list-handle {
 	order: 20;
-	padding: 18px 10px;
-	padding-bottom: max(44px, calc(env(safe-area-inset-bottom) + 28px));
+	flex: 0 0 15%;
+	display: flex;
+	align-items: flex-start; /* 핸들 텍스트는 15% 영역의 위쪽에 */
+	justify-content: center;
+	padding: 14px 10px 0;
 }
 
 .btn {
@@ -220,7 +227,6 @@ body {
 	border: none;
 	color: #66738a;
 	font-size: 0.85rem;
-	padding: 10px;
 	cursor: pointer;
 }
 
