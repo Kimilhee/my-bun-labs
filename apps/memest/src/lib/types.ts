@@ -46,6 +46,7 @@ export type Session = {
 	stage: 'cue' | 'answer' | 'done'
 	hintsUsed: number
 	revealed: boolean
+	peeked?: boolean // 현재 카드가 전문 공개 상태로 열림 (브라우징) — 채점 제외
 }
 
 export type Settings = {

@@ -21,7 +21,6 @@ export type Action =
 	| { type: 'reveal' } // 힌트 다 쓰고 정답 보기
 	| { type: 'backToCue' } // 정답 확인 화면에서 다시 시도로 복귀 (정답 안 봤을 때만 UI 노출)
 	| { type: 'next'; wrong: boolean }
-	| { type: 'skip' } // 채점 없이 현재 카드를 큐 뒤로 (단서 화면 ← 스와이프)
 	| { type: 'quitSession' }
 	| { type: 'setDailySize'; size: number }
 	| { type: 'setScopeParts'; codes: string[] | null }
@@ -29,7 +28,12 @@ export type Action =
 	| { type: 'importData'; data: AppData }
 	| { type: 'resetProgress' }
 
-const freshCard = { stage: 'cue' as const, hintsUsed: 0, revealed: false }
+const freshCard = {
+	stage: 'cue' as const,
+	hintsUsed: 0,
+	revealed: false,
+	peeked: false,
+}
 
 function newSession(
 	mode: Session['mode'],
@@ -77,7 +81,8 @@ export function reduce(data: AppData, action: Action): AppData {
 			const id = s?.queue[0]
 			if (!s || !id) return data
 			const wrong = s.revealed || action.wrong
-			const counted = !s.history.some((e) => e.verseId === id)
+			// peeked = 전문 공개 상태로 열린 브라우징 회차 — 채점에서 제외
+			const counted = !s.peeked && !s.history.some((e) => e.verseId === id)
 			const progress = counted
 				? {
 						...data.progress,
@@ -87,9 +92,10 @@ export function reduce(data: AppData, action: Action): AppData {
 			const rest = s.queue.slice(1)
 			// 재큐잉: 집중 세션은 맨몸으로 열릴 때까지, 일일 세션은 정답 공개 시 1회만
 			const requeue =
-				s.mode === 'intensive'
+				!s.peeked &&
+				(s.mode === 'intensive'
 					? wrong || s.hintsUsed > 0
-					: wrong && s.history.filter((e) => e.verseId === id).length === 0
+					: wrong && s.history.filter((e) => e.verseId === id).length === 0)
 			const queue = requeue ? [...rest, id] : rest
 			const history = [
 				...s.history,
@@ -103,14 +109,6 @@ export function reduce(data: AppData, action: Action): AppData {
 				stage: queue.length === 0 ? 'done' : 'cue',
 			}
 			return { ...data, progress, session }
-		}
-		case 'skip': {
-			const first = s?.queue[0]
-			if (!s || !first || s.queue.length < 2) return data
-			return {
-				...data,
-				session: { ...s, queue: [...s.queue.slice(1), first], ...freshCard },
-			}
 		}
 		case 'quitSession':
 			return { ...data, session: null }
@@ -133,6 +131,7 @@ export function reduce(data: AppData, action: Action): AppData {
 					],
 					...freshCard,
 					stage: action.showAnswer ? 'answer' : 'cue',
+					peeked: Boolean(action.showAnswer),
 				},
 			}
 		}

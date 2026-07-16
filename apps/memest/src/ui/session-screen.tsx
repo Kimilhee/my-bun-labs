@@ -5,9 +5,10 @@ import {
 	useState,
 } from 'react'
 import type { Action } from '../lib/app-state'
-import { mustVerse, parts } from '../lib/data'
+import { mustVerse, parts, verses } from '../lib/data'
 import { hintLayers } from '../lib/hints'
 import { firstPhraseMatch, followWords } from '../lib/match'
+import { inScope } from '../lib/session'
 import {
 	playPass,
 	type RecognizerHandle,
@@ -127,14 +128,23 @@ export function SessionScreen({ data, session, dispatch, onSettings }: Props) {
 	}
 	const stopVoice = () => recRef.current?.stop()
 
-	// 좌우 스와이프: ← 다음(단서에선 skip) / → 직전 구절 다시.
+	// 좌우 스와이프 = 복습 구절 리스트 순서 브라우징: ← 리스트의 다음 구절 / → 이전 구절.
+	// 이미 복습한 구절은 전문이 열린 채로(채점 제외 — peeked), 아니면 단서부터.
 	// 손가락을 따라 카드가 움직이고(translate3d — GPU 합성), 임계값을 넘기면
 	// 화면 밖으로 슬라이드 아웃 → 새 카드가 반대편에서 슬라이드 인. 못 넘기면 스냅백.
-	const prevId = [...session.history]
-		.reverse()
-		.find((e) => e.verseId !== id)?.verseId
-	const canRight = Boolean(prevId)
-	const canLeft = session.stage === 'answer' || session.queue.length > 1
+	const scopeList = verses.filter((v) =>
+		inScope(v.id, session.scopeCodes ?? data.settings.scopeParts),
+	)
+	const scopeIdx = scopeList.findIndex((v) => v.id === id)
+	const nextInList = scopeIdx >= 0 ? scopeList[scopeIdx + 1] : undefined
+	const prevInList = scopeIdx > 0 ? scopeList[scopeIdx - 1] : undefined
+	const canRight = Boolean(prevInList)
+	const canLeft = Boolean(nextInList)
+	const doneNow = new Set(session.history.map((e) => e.verseId))
+	const queuedSet = new Set(session.queue)
+	// 지나온 구절 리스트와 같은 공개 규칙: 이번 세션에 확인했거나, 이전에 다뤘고 대기 중 아님
+	const browseOpen = (vid: string) =>
+		doneNow.has(vid) || Boolean(data.progress[vid] && !queuedSet.has(vid))
 	const onTouchStart = (e: ReactTouchEvent) => {
 		const t = e.touches[0]
 		touchStart.current = t ? { x: t.clientX, y: t.clientY, locked: null } : null
@@ -174,13 +184,15 @@ export function SessionScreen({ data, session, dispatch, onSettings }: Props) {
 		const w = el.clientWidth || window.innerWidth
 		el.style.transition = 'transform 0.18s ease-in'
 		el.style.transform = `translate3d(${dir === 'left' ? -w : w}px,0,0)`
-		const stage = session.stage
+		const target = dir === 'left' ? nextInList : prevInList
 		window.setTimeout(() => {
+			if (!target) return
 			enterFrom.current = dir === 'left' ? 'right' : 'left'
-			if (dir === 'right' && prevId)
-				dispatch({ type: 'redoVerse', verseId: prevId })
-			else if (stage === 'cue') dispatch({ type: 'skip' })
-			else dispatch({ type: 'next', wrong: false })
+			dispatch({
+				type: 'redoVerse',
+				verseId: target.id,
+				showAnswer: browseOpen(target.id),
+			})
 		}, 180)
 	}
 
