@@ -1,4 +1,4 @@
-import type { Level, Verse } from './types'
+import type { Verse } from './types'
 
 const CHO = [
 	'ㄱ',
@@ -47,19 +47,12 @@ export function firstWords(text: string): string {
 
 export type HintLayer = { label: string; content: string }
 
-/** 못 떠올릴수록 한 겹씩 벗겨지는 힌트. 마지막 겹 다음은 정답 공개. */
-export function hintLayers(
-	verse: Verse,
-	level: Level | undefined,
-): HintLayer[] {
-	const layers: HintLayer[] = []
-	if (level === 'D') {
-		const title = verse.midTitle
-			? `${verse.midTitle} · ${verse.title}`
-			: verse.title
-		layers.push({ label: '제목', content: title })
-	}
-	layers.push({ label: '초성', content: choseong(opening(verse.text)) })
-	layers.push({ label: '첫머리', content: `${firstWords(verse.text)} …` })
-	return layers
+/** 못 떠올릴수록 한 겹씩 벗겨지는 힌트. 마지막 겹 다음은 정답 공개.
+ * 소제목은 단서에 노출하지 않고 항상 첫 힌트 (대제목·중제목은 단서로 상시 표시). */
+export function hintLayers(verse: Verse): HintLayer[] {
+	return [
+		{ label: '소제목', content: verse.title },
+		{ label: '초성', content: choseong(opening(verse.text)) },
+		{ label: '첫머리', content: `${firstWords(verse.text)} …` },
+	]
 }

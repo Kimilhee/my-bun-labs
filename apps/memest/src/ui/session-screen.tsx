@@ -5,7 +5,7 @@ import {
 	useState,
 } from 'react'
 import type { Action } from '../lib/app-state'
-import { mustVerse } from '../lib/data'
+import { mustVerse, parts } from '../lib/data'
 import { hintLayers } from '../lib/hints'
 import { firstPhraseMatch, followWords } from '../lib/match'
 import {
@@ -53,8 +53,11 @@ export function SessionScreen({ data, session, dispatch, onSettings }: Props) {
 
 	if (!id) return null
 	const verse = mustVerse(id)
-	const level = data.progress[id]?.level // undefined = 미진단 → C 형태로 제시
-	const layers = hintLayers(verse, level)
+	// 대제목: 파트 배지와 겹치지 않을 때만 (시리즈만 배지명과 다르다)
+	const catalog = parts.find((p) => p.part === verse.part)
+	const bigTitle =
+		catalog && !verse.part.includes(catalog.title) ? catalog.title : null
+	const layers = hintLayers(verse)
 	const shown = layers.slice(0, session.hintsUsed)
 	const hintsLeft = session.hintsUsed < layers.length
 	const doneCount = session.history.length
@@ -165,12 +168,12 @@ export function SessionScreen({ data, session, dispatch, onSettings }: Props) {
 						onTouchStart={onTouchStart}
 						onTouchEnd={onCueSwipe}
 					>
-						{level !== 'D' && (
+						{(bigTitle || verse.midTitle) && (
 							<span className="cue-titles">
+								{bigTitle && <span className="cue-big">{bigTitle}</span>}
 								{verse.midTitle && (
 									<span className="cue-mid">{verse.midTitle}</span>
 								)}
-								<span className="cue-sub">{verse.title}</span>
 							</span>
 						)}
 						<span className="ref">{verse.ref}</span>

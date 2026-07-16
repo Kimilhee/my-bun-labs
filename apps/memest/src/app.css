@@ -119,22 +119,22 @@ body {
 	letter-spacing: 0.02em;
 }
 
-/* 중·소제목: 장절 아래가 아니라 단서 영역 우측 상단 모서리(파트 배지 아래) */
+/* 대제목·중제목: 단서 영역 좌측 상단 모서리에 상시 표시 (소제목은 힌트 1겹) */
 .cue-titles {
-	align-self: flex-end;
+	align-self: flex-start;
 	display: flex;
 	flex-direction: column;
-	align-items: flex-end;
+	align-items: flex-start;
 	gap: 2px;
-	text-align: right;
+	text-align: left;
 }
 
-.cue-mid {
+.cue-big {
 	color: #66738a;
 	font-size: 0.78rem;
 }
 
-.cue-sub {
+.cue-mid {
 	color: #9fb4d0;
 	font-size: 0.9rem;
 }
