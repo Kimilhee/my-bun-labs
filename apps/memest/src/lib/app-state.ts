@@ -21,6 +21,7 @@ export type Action =
 	| { type: 'reveal' } // 힌트 다 쓰고 정답 보기
 	| { type: 'backToCue' } // 정답 확인 화면에서 다시 시도로 복귀 (정답 안 봤을 때만 UI 노출)
 	| { type: 'next'; wrong: boolean }
+	| { type: 'skip' } // 채점 없이 현재 카드를 큐 뒤로 (단서 화면 ← 스와이프)
 	| { type: 'quitSession' }
 	| { type: 'setDailySize'; size: number }
 	| { type: 'setScopeParts'; codes: string[] | null }
@@ -102,6 +103,14 @@ export function reduce(data: AppData, action: Action): AppData {
 				stage: queue.length === 0 ? 'done' : 'cue',
 			}
 			return { ...data, progress, session }
+		}
+		case 'skip': {
+			const first = s?.queue[0]
+			if (!s || !first || s.queue.length < 2) return data
+			return {
+				...data,
+				session: { ...s, queue: [...s.queue.slice(1), first], ...freshCard },
+			}
 		}
 		case 'quitSession':
 			return { ...data, session: null }

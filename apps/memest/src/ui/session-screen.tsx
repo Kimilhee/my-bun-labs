@@ -124,6 +124,13 @@ export function SessionScreen({ data, session, dispatch, onSettings }: Props) {
 		else if (dir === 'right' && prevId)
 			dispatch({ type: 'redoVerse', verseId: prevId })
 	}
+	const onCueSwipe = (e: ReactTouchEvent) => {
+		const dir = swipeDir(e)
+		if (dir === 'left')
+			dispatch({ type: 'skip' }) // 채점 없이 큐 뒤로
+		else if (dir === 'right' && prevId)
+			dispatch({ type: 'redoVerse', verseId: prevId })
+	}
 
 	return (
 		<div className="screen">
@@ -155,12 +162,18 @@ export function SessionScreen({ data, session, dispatch, onSettings }: Props) {
 						type="button"
 						className="cue follow-area"
 						onDoubleClick={revealOne}
+						onTouchStart={onTouchStart}
+						onTouchEnd={onCueSwipe}
 					>
-						{level !== 'D' && verse.midTitle && (
-							<span className="cue-mid">{verse.midTitle}</span>
+						{level !== 'D' && (
+							<span className="cue-titles">
+								{verse.midTitle && (
+									<span className="cue-mid">{verse.midTitle}</span>
+								)}
+								<span className="cue-sub">{verse.title}</span>
+							</span>
 						)}
 						<span className="ref">{verse.ref}</span>
-						{level !== 'D' && <span className="cue-title">{verse.title}</span>}
 						{shown.map((h) => (
 							<span className="hint-row" key={h.label}>
 								<span className="hint-label">{h.label}</span>
@@ -188,50 +201,54 @@ export function SessionScreen({ data, session, dispatch, onSettings }: Props) {
 							{revealed > 0 && ` (${revealed}/${words.length})`}
 						</span>
 					</button>
-					<button
-						type="button"
-						className="list-handle"
-						onClick={() => setListOpen(true)}
-					>
-						≡ 지나온 구절
-					</button>
-					<div className={`actions ${canSpeak ? 'three' : ''}`}>
-						{hintsLeft ? (
+					<div className="bottom">
+						<div className={`actions ${canSpeak ? 'three' : ''}`}>
+							{hintsLeft ? (
+								<button
+									type="button"
+									className="btn"
+									onClick={() => dispatch({ type: 'hint' })}
+								>
+									힌트 {session.hintsUsed}/{layers.length}
+								</button>
+							) : (
+								<button
+									type="button"
+									className="btn"
+									onClick={() => dispatch({ type: 'reveal' })}
+								>
+									정답 보기
+								</button>
+							)}
+							{canSpeak && (
+								<button
+									type="button"
+									className={`btn hold ${voice.status === 'recording' ? 'recording' : ''}`}
+									onPointerDown={startVoice}
+									onPointerUp={stopVoice}
+									onPointerLeave={stopVoice}
+									onPointerCancel={stopVoice}
+									onContextMenu={(e) => e.preventDefault()}
+								>
+									{voice.status === 'recording'
+										? '● 듣는 중'
+										: '🎤 첫머리 암송'}
+								</button>
+							)}
 							<button
 								type="button"
-								className="btn"
-								onClick={() => dispatch({ type: 'hint' })}
+								className="btn primary"
+								onClick={() => dispatch({ type: 'recalled' })}
 							>
-								힌트 {session.hintsUsed}/{layers.length}
+								말씀 확인
 							</button>
-						) : (
-							<button
-								type="button"
-								className="btn"
-								onClick={() => dispatch({ type: 'reveal' })}
-							>
-								정답 보기
-							</button>
-						)}
-						{canSpeak && (
-							<button
-								type="button"
-								className={`btn hold ${voice.status === 'recording' ? 'recording' : ''}`}
-								onPointerDown={startVoice}
-								onPointerUp={stopVoice}
-								onPointerLeave={stopVoice}
-								onPointerCancel={stopVoice}
-								onContextMenu={(e) => e.preventDefault()}
-							>
-								{voice.status === 'recording' ? '● 듣는 중' : '🎤 첫머리 암송'}
-							</button>
-						)}
+						</div>
 						<button
 							type="button"
-							className="btn primary"
-							onClick={() => dispatch({ type: 'recalled' })}
+							className="list-handle"
+							onClick={() => setListOpen(true)}
 						>
-							말씀 확인
+							≡ 지나온 구절
 						</button>
 					</div>
 				</>
@@ -255,40 +272,42 @@ export function SessionScreen({ data, session, dispatch, onSettings }: Props) {
 							<p className="revealed-tag">정답 확인 — 읽고 다시 만나요</p>
 						)}
 					</div>
-					<button
-						type="button"
-						className="list-handle"
-						onClick={() => setListOpen(true)}
-					>
-						≡ 지나온 구절
-					</button>
-					<div className={`actions ${!session.revealed ? 'three' : ''}`}>
-						{!session.revealed && (
+					<div className="bottom">
+						<div className={`actions ${!session.revealed ? 'three' : ''}`}>
+							{!session.revealed && (
+								<button
+									type="button"
+									className="btn"
+									onClick={() => dispatch({ type: 'backToCue' })}
+								>
+									다시하기
+								</button>
+							)}
+							{!session.revealed ? (
+								<button
+									type="button"
+									className="btn"
+									onClick={() => dispatch({ type: 'next', wrong: true })}
+								>
+									잘못 떠올림
+								</button>
+							) : (
+								<span />
+							)}
 							<button
 								type="button"
-								className="btn"
-								onClick={() => dispatch({ type: 'backToCue' })}
+								className="btn primary"
+								onClick={() => dispatch({ type: 'next', wrong: false })}
 							>
-								다시하기
+								다음
 							</button>
-						)}
-						{!session.revealed ? (
-							<button
-								type="button"
-								className="btn"
-								onClick={() => dispatch({ type: 'next', wrong: true })}
-							>
-								잘못 떠올림
-							</button>
-						) : (
-							<span />
-						)}
+						</div>
 						<button
 							type="button"
-							className="btn primary"
-							onClick={() => dispatch({ type: 'next', wrong: false })}
+							className="list-handle"
+							onClick={() => setListOpen(true)}
 						>
-							다음
+							≡ 지나온 구절
 						</button>
 					</div>
 				</>
