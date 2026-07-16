@@ -38,7 +38,13 @@ export function SessionScreen({ data, session, dispatch, onSettings }: Props) {
 	const [revealed, setRevealed] = useState(0) // 더블탭으로 연 어절 수
 	const [voice, setVoice] = useState<Voice>({ status: 'idle' })
 	const recRef = useRef<RecognizerHandle | null>(null)
-	const touchStart = useRef<{ x: number; y: number } | null>(null) // 스와이프 시작점
+	const touchStart = useRef<{
+		x: number
+		y: number
+		locked: 'h' | 'v' | null // 첫 움직임에서 가로/세로 잠금
+	} | null>(null)
+	const slideRef = useRef<HTMLElement | null>(null) // 스와이프로 움직이는 카드 영역
+	const enterFrom = useRef<'left' | 'right' | null>(null) // 다음 카드의 진입 방향
 	const id = session.queue[0]
 	const encounterKey = `${id}:${session.history.length}`
 
@@ -49,6 +55,25 @@ export function SessionScreen({ data, session, dispatch, onSettings }: Props) {
 		setVoice({ status: 'idle' })
 		recRef.current?.cancel()
 		recRef.current = null
+		// 스와이프로 넘어왔으면 새 카드를 반대편에서 슬라이드 인
+		const el = slideRef.current
+		const from = enterFrom.current
+		enterFrom.current = null
+		if (!el) return
+		if (from) {
+			const w = el.clientWidth || window.innerWidth
+			el.style.transition = 'none'
+			el.style.transform = `translate3d(${from === 'right' ? w : -w}px,0,0)`
+			requestAnimationFrame(() =>
+				requestAnimationFrame(() => {
+					el.style.transition = 'transform 0.24s cubic-bezier(0.2, 0.8, 0.3, 1)'
+					el.style.transform = 'translate3d(0,0,0)'
+				}),
+			)
+		} else {
+			el.style.transition = 'none'
+			el.style.transform = ''
+		}
 	}, [encounterKey])
 
 	if (!id) return null
@@ -102,37 +127,61 @@ export function SessionScreen({ data, session, dispatch, onSettings }: Props) {
 	}
 	const stopVoice = () => recRef.current?.stop()
 
-	// 본문 좌우 스와이프: ← 다음 / → 직전 구절 다시
-	const onTouchStart = (e: ReactTouchEvent) => {
-		const t = e.touches[0]
-		touchStart.current = t ? { x: t.clientX, y: t.clientY } : null
-	}
-	const swipeDir = (e: ReactTouchEvent): 'left' | 'right' | null => {
-		const start = touchStart.current
-		touchStart.current = null
-		const t = e.changedTouches[0]
-		if (!start || !t) return null
-		const dx = t.clientX - start.x
-		const dy = t.clientY - start.y
-		// 세로 스크롤과 구분: 가로 이동이 충분히 크고 지배적일 때만
-		if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 2) return null
-		return dx < 0 ? 'left' : 'right'
-	}
+	// 좌우 스와이프: ← 다음(단서에선 skip) / → 직전 구절 다시.
+	// 손가락을 따라 카드가 움직이고(translate3d — GPU 합성), 임계값을 넘기면
+	// 화면 밖으로 슬라이드 아웃 → 새 카드가 반대편에서 슬라이드 인. 못 넘기면 스냅백.
 	const prevId = [...session.history]
 		.reverse()
 		.find((e) => e.verseId !== id)?.verseId
-	const onAnswerSwipe = (e: ReactTouchEvent) => {
-		const dir = swipeDir(e)
-		if (dir === 'left') dispatch({ type: 'next', wrong: false })
-		else if (dir === 'right' && prevId)
-			dispatch({ type: 'redoVerse', verseId: prevId })
+	const canRight = Boolean(prevId)
+	const canLeft = session.stage === 'answer' || session.queue.length > 1
+	const onTouchStart = (e: ReactTouchEvent) => {
+		const t = e.touches[0]
+		touchStart.current = t ? { x: t.clientX, y: t.clientY, locked: null } : null
 	}
-	const onCueSwipe = (e: ReactTouchEvent) => {
-		const dir = swipeDir(e)
-		if (dir === 'left')
-			dispatch({ type: 'skip' }) // 채점 없이 큐 뒤로
-		else if (dir === 'right' && prevId)
-			dispatch({ type: 'redoVerse', verseId: prevId })
+	const onTouchMove = (e: ReactTouchEvent) => {
+		const d = touchStart.current
+		const el = slideRef.current
+		const t = e.touches[0]
+		if (!d || !t || !el) return
+		const dx = t.clientX - d.x
+		const dy = t.clientY - d.y
+		if (!d.locked) {
+			// 첫 유의미한 움직임에서 방향 고정 — 세로면 스크롤에 양보
+			if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return
+			d.locked = Math.abs(dx) > Math.abs(dy) ? 'h' : 'v'
+		}
+		if (d.locked !== 'h') return
+		const allowed = dx < 0 ? canLeft : canRight
+		el.style.transition = 'none'
+		el.style.transform = `translate3d(${allowed ? dx : dx / 3}px,0,0)` // 막힌 방향은 저항감만
+	}
+	const onSwipeEnd = (e: ReactTouchEvent) => {
+		const d = touchStart.current
+		touchStart.current = null
+		const el = slideRef.current
+		const t = e.changedTouches[0]
+		if (!d || !t || !el || d.locked !== 'h') return
+		const dx = t.clientX - d.x
+		const dir = dx < -60 ? 'left' : dx > 60 ? 'right' : null
+		const allowed =
+			dir === 'left' ? canLeft : dir === 'right' ? canRight : false
+		if (!dir || !allowed) {
+			el.style.transition = 'transform 0.2s cubic-bezier(0.2, 0.8, 0.3, 1)'
+			el.style.transform = 'translate3d(0,0,0)'
+			return
+		}
+		const w = el.clientWidth || window.innerWidth
+		el.style.transition = 'transform 0.18s ease-in'
+		el.style.transform = `translate3d(${dir === 'left' ? -w : w}px,0,0)`
+		const stage = session.stage
+		window.setTimeout(() => {
+			enterFrom.current = dir === 'left' ? 'right' : 'left'
+			if (dir === 'right' && prevId)
+				dispatch({ type: 'redoVerse', verseId: prevId })
+			else if (stage === 'cue') dispatch({ type: 'skip' })
+			else dispatch({ type: 'next', wrong: false })
+		}, 180)
 	}
 
 	return (
@@ -164,9 +213,14 @@ export function SessionScreen({ data, session, dispatch, onSettings }: Props) {
 					<button
 						type="button"
 						className="cue follow-area"
+						ref={(el) => {
+							slideRef.current = el
+						}}
 						onDoubleClick={revealOne}
 						onTouchStart={onTouchStart}
-						onTouchEnd={onCueSwipe}
+						onTouchMove={onTouchMove}
+						onTouchEnd={onSwipeEnd}
+						onTouchCancel={onSwipeEnd}
 					>
 						{(bigTitle || verse.midTitle) && (
 							<span className="cue-titles">
@@ -259,8 +313,13 @@ export function SessionScreen({ data, session, dispatch, onSettings }: Props) {
 				<>
 					<div
 						className="answer"
+						ref={(el) => {
+							slideRef.current = el
+						}}
 						onTouchStart={onTouchStart}
-						onTouchEnd={onAnswerSwipe}
+						onTouchMove={onTouchMove}
+						onTouchEnd={onSwipeEnd}
+						onTouchCancel={onSwipeEnd}
 					>
 						<div className="hierarchy">
 							{verse.part}
