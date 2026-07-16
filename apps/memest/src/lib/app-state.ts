@@ -25,7 +25,7 @@ export type Action =
 	| { type: 'quitSession' }
 	| { type: 'setDailySize'; size: number }
 	| { type: 'setScopeParts'; codes: string[] | null }
-	| { type: 'redoVerse'; verseId: string } // 지나온 구절을 다시 현재 카드로
+	| { type: 'redoVerse'; verseId: string; showAnswer?: boolean } // 지나온 구절을 다시 현재 카드로 (showAnswer면 전문부터)
 	| { type: 'importData'; data: AppData }
 	| { type: 'resetProgress' }
 
@@ -121,10 +121,19 @@ export function reduce(data: AppData, action: Action): AppData {
 			}
 		case 'redoVerse': {
 			if (!s || s.queue[0] === action.verseId) return data
-			// 이미 채점된 카드의 재도전이라 history에 있으니, 이번 회차는 counted=false로 처리됨
+			// 이미 채점된 카드의 재도전이면 history에 있으니 counted=false로 처리됨.
+			// 대기 중이던 카드를 고르면 복제 대신 맨 앞으로 이동.
 			return {
 				...data,
-				session: { ...s, queue: [action.verseId, ...s.queue], ...freshCard },
+				session: {
+					...s,
+					queue: [
+						action.verseId,
+						...s.queue.filter((q) => q !== action.verseId),
+					],
+					...freshCard,
+					stage: action.showAnswer ? 'answer' : 'cue',
+				},
 			}
 		}
 		case 'setScopeParts': {

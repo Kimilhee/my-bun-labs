@@ -326,8 +326,8 @@ export function SessionScreen({ data, session, dispatch, onSettings }: Props) {
 				<VerseListSheet
 					data={data}
 					session={session}
-					onRedo={(verseId) => {
-						dispatch({ type: 'redoVerse', verseId })
+					onPick={(verseId, showAnswer) => {
+						dispatch({ type: 'redoVerse', verseId, showAnswer })
 						setListOpen(false)
 					}}
 					onClose={() => setListOpen(false)}
