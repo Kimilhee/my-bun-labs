@@ -1,10 +1,19 @@
+import {
+	bumpStats,
+	DRILL_FLOOR,
+	insertAt,
+	requeueGap,
+	turnScore,
+} from './drill'
 import { grade } from './scheduler'
 import { buildDailyQueue, buildIntensiveQueue } from './session'
 import type { AppData, Session } from './types'
 
 export const defaultData: AppData = {
 	progress: {},
-	settings: { dailySize: 20, scopeParts: null },
+	drill: {},
+	stats: {},
+	settings: { dailySize: 20, scopeParts: null, hardDrill: false },
 	session: null,
 }
 
@@ -23,6 +32,7 @@ export type Action =
 	| { type: 'next'; wrong: boolean }
 	| { type: 'quitSession' }
 	| { type: 'setDailySize'; size: number }
+	| { type: 'setHardDrill'; on: boolean }
 	| { type: 'setScopeParts'; codes: string[] | null }
 	| { type: 'redoVerse'; verseId: string; showAnswer?: boolean } // 지나온 구절을 다시 현재 카드로 (showAnswer면 전문부터)
 	| { type: 'importData'; data: AppData }
@@ -57,7 +67,12 @@ export function reduce(data: AppData, action: Action): AppData {
 				...data,
 				session: newSession(
 					'intensive',
-					buildIntensiveQueue(action.codes, action.starredOnly, action.cap),
+					buildIntensiveQueue(
+						action.codes,
+						action.starredOnly,
+						action.cap,
+						data.settings.hardDrill ? data.drill : undefined,
+					),
 					action.codes,
 				),
 			}
@@ -81,22 +96,43 @@ export function reduce(data: AppData, action: Action): AppData {
 			const id = s?.queue[0]
 			if (!s || !id) return data
 			const wrong = s.revealed || action.wrong
-			// peeked = 전문 공개 상태로 열린 브라우징 회차 — 채점에서 제외
-			const counted = !s.peeked && !s.history.some((e) => e.verseId === id)
+			// peeked = 전문 공개 상태로 열린 브라우징 회차 — 채점·집계에서 전부 제외
+			const scored = !s.peeked
+			const counted = scored && !s.history.some((e) => e.verseId === id)
 			const progress = counted
 				? {
 						...data.progress,
 						[id]: grade(data.progress[id], s.hintsUsed, wrong, s.mode),
 					}
 				: data.progress
+			const stats = scored
+				? bumpStats(data.stats, id, s.hintsUsed, wrong)
+				: data.stats
 			const rest = s.queue.slice(1)
-			// 재큐잉: 집중 세션은 맨몸으로 열릴 때까지, 일일 세션은 정답 공개 시 1회만
-			const requeue =
-				!s.peeked &&
-				(s.mode === 'intensive'
-					? wrong || s.hintsUsed > 0
-					: wrong && s.history.filter((e) => e.verseId === id).length === 0)
-			const queue = requeue ? [...rest, id] : rest
+
+			let drill = data.drill
+			let queue = rest
+			if (data.settings.hardDrill && scored) {
+				// 부채가 깊을수록 가까이 되돌아오고, 0 이상이 되면 졸업(항목 삭제)
+				const score = Math.max(
+					DRILL_FLOOR,
+					(data.drill[id] ?? 0) + turnScore(s.hintsUsed, wrong),
+				)
+				drill = { ...data.drill }
+				if (score >= 0) delete drill[id]
+				else {
+					drill[id] = score
+					queue = insertAt(rest, id, requeueGap(score))
+				}
+			} else if (!data.settings.hardDrill) {
+				// 기존 재큐잉: 집중은 맨몸으로 열릴 때까지, 일일은 정답 공개 시 1회만
+				const requeue =
+					scored &&
+					(s.mode === 'intensive'
+						? wrong || s.hintsUsed > 0
+						: wrong && s.history.filter((e) => e.verseId === id).length === 0)
+				if (requeue) queue = [...rest, id]
+			}
 			const history = [
 				...s.history,
 				{ verseId: id, hints: s.hintsUsed, wrong, counted },
@@ -108,7 +144,7 @@ export function reduce(data: AppData, action: Action): AppData {
 				...freshCard,
 				stage: queue.length === 0 ? 'done' : 'cue',
 			}
-			return { ...data, progress, session }
+			return { ...data, progress, drill, stats, session }
 		}
 		case 'quitSession':
 			return { ...data, session: null }
@@ -116,6 +152,11 @@ export function reduce(data: AppData, action: Action): AppData {
 			return {
 				...data,
 				settings: { ...data.settings, dailySize: Math.max(1, action.size) },
+			}
+		case 'setHardDrill':
+			return {
+				...data,
+				settings: { ...data.settings, hardDrill: action.on },
 			}
 		case 'redoVerse': {
 			if (!s || s.queue[0] === action.verseId) return data
@@ -148,6 +189,6 @@ export function reduce(data: AppData, action: Action): AppData {
 		case 'importData':
 			return action.data
 		case 'resetProgress':
-			return { ...data, progress: {}, session: null }
+			return { ...data, progress: {}, drill: {}, stats: {}, session: null }
 	}
 }

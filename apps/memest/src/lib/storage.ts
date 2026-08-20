@@ -10,6 +10,8 @@ export function loadData(): AppData {
 		const parsed = JSON.parse(raw) as Partial<AppData>
 		return {
 			progress: parsed.progress ?? {},
+			drill: parsed.drill ?? {},
+			stats: parsed.stats ?? {},
 			settings: { ...defaultData.settings, ...parsed.settings },
 			session: parsed.session ?? null,
 		}

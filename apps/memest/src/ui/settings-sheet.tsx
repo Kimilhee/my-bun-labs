@@ -12,6 +12,7 @@ export function SettingsSheet({ data, dispatch, onClose }: Props) {
 	const [importText, setImportText] = useState('')
 	const [msg, setMsg] = useState('')
 	const [resetArmed, setResetArmed] = useState(false)
+	const debtCount = Object.keys(data.drill).length
 
 	const doExport = async () => {
 		const json = JSON.stringify(data)
@@ -30,7 +31,12 @@ export function SettingsSheet({ data, dispatch, onClose }: Props) {
 			if (typeof parsed.progress !== 'object') throw new Error('bad format')
 			dispatch({
 				type: 'importData',
-				data: { ...parsed, session: parsed.session ?? null },
+				data: {
+					...parsed,
+					drill: parsed.drill ?? {},
+					stats: parsed.stats ?? {},
+					session: parsed.session ?? null,
+				},
 			})
 			setMsg('가져오기 완료')
 		} catch {
@@ -69,6 +75,22 @@ export function SettingsSheet({ data, dispatch, onClose }: Props) {
 							}
 						/>
 					</label>
+
+					<label className="row">
+						<input
+							type="checkbox"
+							checked={data.settings.hardDrill}
+							onChange={(e) =>
+								dispatch({ type: 'setHardDrill', on: e.target.checked })
+							}
+						/>
+						하드드릴 모드
+					</label>
+					<p className="note">
+						완벽하게(힌트 없이) 맞출 때까지 세션 안에서 계속 되돌아옵니다. 크게
+						무너진 구절일수록 더 가까이 다시 나옵니다.
+						{debtCount > 0 && ` — 남은 부채 ${debtCount}구절`}
+					</p>
 
 					{data.session && (
 						<button

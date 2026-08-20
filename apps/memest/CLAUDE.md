@@ -3,7 +3,7 @@
 장절 → 말씀 첫 구절 연결을 회복하는 개인용 복습 PWA. 스마트폰이 주 사용 환경.
 
 - **배포**: https://kimilhee.github.io/my-bun-labs/ (main 푸시 시 GitHub Actions 자동 배포)
-- **문서**: [docs/PRD.md](docs/PRD.md) 무엇을·왜 / [docs/ADR.md](docs/ADR.md) 결정 근거 / [docs/design.md](docs/design.md) 구현 설계. 설계가 바뀌면 문서를 같은 커밋에서 갱신한다.
+- **문서**: [docs/PRD.md](docs/PRD.md) 무엇을·왜 / [docs/ADR.md](docs/ADR.md) 결정 근거 / [docs/design.md](docs/design.md) 구현 설계 / [docs/hard-drill.md](docs/hard-drill.md) 하드드릴 점수 규칙 상세. 설계가 바뀌면 문서를 같은 커밋에서 갱신한다.
 
 ## 명령
 
@@ -22,9 +22,9 @@ BTT/            # 원본 데이터 (EUC-KR, 수정 금지 — 변환기의 입�
 data/           # verses.json(카드 495개)·parts.json(파트 16개) — convert가 생성
 scripts/convert-btt.ts
 src/
-  lib/          # 순수 로직: types, data, scheduler(Leitner), session(큐),
-                #   app-state(리듀서), hints(초성), match(어절·첫머리 매칭),
-                #   speech(Web Speech 래퍼 — 안드로이드 우회 포함), storage
+  lib/          # 순수 로직: types, data, scheduler(Leitner), drill(하드드릴 부채),
+                #   session(큐), app-state(리듀서), hints(초성),
+                #   match(어절·첫머리 매칭), speech(Web Speech 래퍼), storage
   ui/           # 화면: session-screen(핵심), start-screen, 시트들
 docs/           # PRD / ADR / design
 ```

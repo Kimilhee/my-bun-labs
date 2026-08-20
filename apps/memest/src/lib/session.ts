@@ -23,17 +23,20 @@ export function buildDailyQueue(data: AppData): string[] {
 	return [...due, ...unseen].slice(0, data.settings.dailySize)
 }
 
+/** 하드드릴이 켜져 있으면 남은 부채가 깊은 카드부터 앞에 세운다 (정렬은 안정적) */
 export function buildIntensiveQueue(
 	codes: string[],
 	starredOnly: boolean,
 	cap: number,
+	drill?: Record<string, number>,
 ): string[] {
-	return verses
+	const ids = verses
 		.filter(
 			(v) =>
 				codes.some((c) => v.id.startsWith(`${c}-`)) &&
 				(!starredOnly || v.starred),
 		)
 		.map((v) => v.id)
-		.slice(0, cap)
+	if (drill) ids.sort((a, b) => (drill[a] ?? 0) - (drill[b] ?? 0))
+	return ids.slice(0, cap)
 }

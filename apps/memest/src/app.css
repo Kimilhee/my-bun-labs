@@ -74,6 +74,12 @@ body {
 	font-size: 0.85rem;
 }
 
+/* 하드드릴에서 이 카드에 남은 부채 */
+.progress-label.debt {
+	color: #d97757;
+	font-variant-numeric: tabular-nums;
+}
+
 .icon-btn {
 	background: none;
 	border: none;

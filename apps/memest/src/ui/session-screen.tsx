@@ -88,6 +88,8 @@ export function SessionScreen({ data, session, dispatch, onSettings }: Props) {
 	const hintsLeft = session.hintsUsed < layers.length
 	const doneCount = session.history.length
 	const total = doneCount + session.queue.length
+	// 하드드릴: 이 카드에 남은 부채 (0 이상이면 표시 안 함)
+	const debt = data.settings.hardDrill ? (data.drill[id] ?? 0) : 0
 
 	const words = followWords(verse.text)
 	const revealEnd =
@@ -209,6 +211,7 @@ export function SessionScreen({ data, session, dispatch, onSettings }: Props) {
 				<span className="progress-label">
 					{doneCount + 1}/{total}
 				</span>
+				{debt < 0 && <span className="progress-label debt">{debt}</span>}
 				<span className="spacer" />
 				<button
 					type="button"

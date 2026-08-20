@@ -52,10 +52,19 @@ export type Session = {
 export type Settings = {
 	dailySize: number
 	scopeParts: string[] | null // 복습 범위 파트 코드 목록 (null = 전체)
+	hardDrill: boolean // 하드드릴: 부채가 0 이상이 될 때까지 세션 안에서 재등장
+}
+
+/** 누적 기록 (정렬·통계용, 모드 무관). 스케줄러 입력이 아니다. */
+export type Stats = {
+	wrong: number
+	hints: number
 }
 
 export type AppData = {
 	progress: Record<string, Progress>
+	drill: Record<string, number> // verseId → 부채 점수(음수). 갚으면 항목 삭제
+	stats: Record<string, Stats>
 	settings: Settings
 	session: Session | null
 }
