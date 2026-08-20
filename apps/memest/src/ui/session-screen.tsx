@@ -88,6 +88,8 @@ export function SessionScreen({ data, session, dispatch, onSettings }: Props) {
 	const hintsLeft = session.hintsUsed < layers.length
 	const doneCount = session.history.length
 	const total = doneCount + session.queue.length
+	// 재큐잉으로 분모가 늘어나므로 실질 남은 수(현재 카드 제외)를 따로 보여준다
+	const remaining = total - doneCount - 1
 	// 하드드릴: 이 카드에 남은 부채 (0 이상이면 표시 안 함)
 	const debt = data.settings.hardDrill ? (data.drill[id] ?? 0) : 0
 
@@ -209,7 +211,7 @@ export function SessionScreen({ data, session, dispatch, onSettings }: Props) {
 					{verse.part} ▾
 				</button>
 				<span className="progress-label">
-					{doneCount + 1}/{total}
+					{doneCount + 1}/{total} ({remaining})
 				</span>
 				{debt < 0 && <span className="progress-label debt">{debt}</span>}
 				<span className="spacer" />
