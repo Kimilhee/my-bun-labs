@@ -23,8 +23,9 @@ type Props = {
 
 /**
  * 구절 리스트 (바텀시트). 기본은 복습 범위 전체, titleScope가 오면 그 제목 범위.
- * 스포일러 방지: 이번 세션에서 확인했거나 이전 세션에서 다뤘던 카드만 제목·첫머리를
- * 노출하고, 현재 카드와 이번 세션에서 아직 안 나온 대기 카드는 장절만 보여준다.
+ * 모든 구절의 제목·첫머리를 보여준다 (예전의 스포일러 가리기는 걷어냄 — 리스트는
+ * 찾아보는 용도라 다 보이는 편이 쓸모 있다). 이미 다뤄본 구절인지(studied)는
+ * 표시가 아니라 장절 탭의 동작(전문부터 vs 단서부터)에만 쓴다.
  */
 export function VerseListSheet({
 	data,
@@ -111,10 +112,11 @@ export function VerseListSheet({
 						lastGroup = group
 						// 제목 범위 리스트에서는 현재 카드도 다른 구절과 똑같이 보여준다
 						const isCurrent = v.id === currentId && !titleScope
-						// 이번 세션에서 확인했거나, 이전 세션에서 다뤘고 지금 대기열에 없는 카드만 공개
-						const revealed =
-							!isCurrent &&
-							(doneNow.has(v.id) || (data.progress[v.id] && !queued.has(v.id)))
+						// 이미 다뤄본 구절인지 — 표시가 아니라 장절 탭의 동작을 가른다
+						// (다뤄봤으면 전문부터 = 브라우징, 아니면 단서부터 = 암송)
+						const studied =
+							doneNow.has(v.id) ||
+							Boolean(data.progress[v.id] && !queued.has(v.id))
 						return (
 							<div key={v.id}>
 								{header && <div className="list-part-header">{header}</div>}
@@ -123,7 +125,7 @@ export function VerseListSheet({
 									<button
 										type="button"
 										className="list-ref list-ref-btn"
-										onClick={() => onPick(v.id, Boolean(revealed))}
+										onClick={() => onPick(v.id, studied)}
 										aria-label={`${v.ref} 선택`}
 									>
 										{v.ref}
@@ -132,18 +134,15 @@ export function VerseListSheet({
 										type="button"
 										className="list-row-main"
 										onClick={() =>
-											revealed &&
 											setExpandedId(expandedId === v.id ? null : v.id)
 										}
 									>
 										{isCurrent && <span className="now-tag">지금 복습중</span>}
-										{revealed && (
-											<span className="list-preview">
-												{v.title} — {opening(v.text, 20)}
-											</span>
-										)}
+										<span className="list-preview">
+											{v.title} — {opening(v.text, 20)}
+										</span>
 									</button>
-									{revealed && !titleScope && (
+									{studied && !titleScope && (
 										<button
 											type="button"
 											className="redo-btn"
@@ -154,7 +153,7 @@ export function VerseListSheet({
 										</button>
 									)}
 								</div>
-								{expandedId === v.id && revealed && (
+								{expandedId === v.id && (
 									<div className="list-expanded">
 										<div className="hierarchy">
 											{v.midTitle ? `${v.midTitle} › ` : ''}
