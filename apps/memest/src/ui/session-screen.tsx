@@ -243,7 +243,6 @@ export function SessionScreen({ data, session, dispatch, onSettings }: Props) {
 				<span className="progress-label">
 					{doneCount + 1}/{total} ({remaining})
 				</span>
-				{debt < 0 && <span className="progress-label debt">{debt}</span>}
 				<span className="spacer" />
 				<button
 					type="button"
@@ -432,6 +431,12 @@ export function SessionScreen({ data, session, dispatch, onSettings }: Props) {
 								<span className="star-on"> ⭐</span>
 							)}
 						</button>
+						{/* 하드드릴 부채 — 졸업까지 무결점 몇 회가 남았는지 대략 보여준다 */}
+						{debt < 0 && (
+							<div className="debt-note">
+								{debt}점 · 무결점 {Math.ceil(-debt / 10)}회면 졸업
+							</div>
+						)}
 						<p className="text">{verse.text}</p>
 						{verse.note && <p className="note">메모: {verse.note}</p>}
 						{session.revealed && (

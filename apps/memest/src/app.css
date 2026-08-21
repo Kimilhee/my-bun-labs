@@ -74,12 +74,6 @@ body {
 	font-size: 0.85rem;
 }
 
-/* 하드드릴에서 이 카드에 남은 부채 */
-.progress-label.debt {
-	color: #d97757;
-	font-variant-numeric: tabular-nums;
-}
-
 .icon-btn {
 	background: none;
 	border: none;
@@ -147,6 +141,15 @@ body {
 .star-on {
 	font-size: 0.8rem;
 	vertical-align: middle;
+}
+
+/* 하드드릴 부채 — 정답 화면에서만, 장절 밑 오른쪽에 작게 (gap 14px + 여기 margin) */
+.debt-note {
+	align-self: flex-end;
+	margin-top: 1.6rem;
+	color: #66738a;
+	font-size: 0.78rem;
+	font-variant-numeric: tabular-nums;
 }
 
 /* 소제목: 정답 화면에서 별도 줄로, 장절(2.1rem)과 본문(1.15rem)의 중간 크기 */
@@ -712,7 +715,7 @@ body {
 	background: none;
 	border: none;
 	color: #8a94a3;
-	font-size: 0.8rem; /* ▶/▼는 채워진 글리프라 작아도 충분히 진하다 */
+	font-size: 0.75rem; /* ▶/▼는 채워진 글리프라 작아도 충분히 진하다 */
 	line-height: 1;
 	padding: 8px 0; /* 폭은 좁게, 세로로 손가락 크기를 확보 */
 	text-align: left;
