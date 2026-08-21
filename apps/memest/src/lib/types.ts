@@ -41,12 +41,12 @@ export type Session = {
 	revealedWords?: number // 더블탭으로 연 어절 수 (하드드릴 감점 대상)
 }
 
-/** 매일 복습에서 묶음·구절을 어떤 차례로 볼지 */
-export type DailyOrder = 'forward' | 'backward' | 'shuffle'
+/** 구절을 어떤 차례로 볼지 (두 모드 공통). 하드 드릴은 부채 정렬이 이 위에 얹힌다 */
+export type ReviewOrder = 'forward' | 'backward' | 'shuffle'
 
 export type Settings = {
 	mode: SessionMode // 지금 어느 모드에 있는지 (앱을 다시 열어도 유지)
-	dailyOrder: DailyOrder
+	reviewOrder: ReviewOrder // 복습 차례 (매일 복습의 묶음·구절, 하드 드릴의 기본 차례)
 	scopeParts: string[] | null // 하드드릴에서 마지막으로 고른 범위 (null = 전체)
 	listFull: boolean // 구절 리스트 시트를 전체 높이로 열지 (반만 선택하면 기억)
 }

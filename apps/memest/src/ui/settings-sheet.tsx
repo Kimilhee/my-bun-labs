@@ -95,7 +95,7 @@ export function SettingsSheet({
 						{debtCount > 0 && ` — 남은 부채 ${debtCount}구절`}
 					</p>
 
-					<h3>매일 복습 순서</h3>
+					<h3>복습 순서</h3>
 					<div className="mode-pick order-pick">
 						{(
 							[
@@ -107,17 +107,18 @@ export function SettingsSheet({
 							<button
 								type="button"
 								key={o}
-								className={`btn ${data.settings.dailyOrder === o ? 'primary' : ''}`}
-								onClick={() => dispatch({ type: 'setDailyOrder', order: o })}
+								className={`btn ${data.settings.reviewOrder === o ? 'primary' : ''}`}
+								onClick={() => dispatch({ type: 'setReviewOrder', order: o })}
 							>
 								{label}
 							</button>
 						))}
 					</div>
 					<p className="note">
-						묶음과 그 안의 구절 차례에 함께 적용됩니다. 진행 중인 오늘 분량은
-						그대로 두고 <b>남은 묶음만</b> 다시 줄 세우니 언제 바꿔도 빠지거나
-						겹치는 구절이 없어요. (하드 드릴은 부채가 깊은 구절부터 그대로)
+						매일 복습은 묶음과 그 안의 구절 차례에, 하드 드릴은 시작할 때의 기본
+						차례에 적용됩니다 (<b>부채가 깊은 구절은 그 위에서 앞으로</b>{' '}
+						당겨져요). 진행 중인 세션은 그대로 두고 남은 것만 다시 줄 세우니
+						언제 바꿔도 빠지거나 겹치는 구절이 없어요.
 					</p>
 
 					<button

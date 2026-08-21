@@ -1,3 +1,4 @@
+import { ordered } from './curriculum'
 import { isStarred, parts, verseById, verses } from './data'
 import type { AppData, Session } from './types'
 
@@ -46,19 +47,24 @@ export function sessionVerseIds(s: Session): string[] {
 }
 
 /**
- * 하드드릴 큐 — 고른 범위 전체를 목차 순서로. 부채가 있으면 깊은 카드부터 앞에
- * 세운다 (정렬은 안정적이라 나머지는 목차 순서 그대로).
+ * 하드드릴 큐 — 고른 범위 전체를 **복습 순서 설정대로** 깔고, 그 위에 부채가
+ * 깊은 카드를 앞으로 당긴다. 정렬이 안정적이라 부채가 같은(대개 0인) 카드들은
+ * 설정한 차례를 그대로 유지한다.
  */
 export function buildDrillQueue(
 	scope: string[] | null,
 	starredOnly: boolean,
 	data: AppData,
 ): string[] {
-	const ids = verses
-		.filter(
-			(v) => inScope(v.id, scope) && (!starredOnly || isStarred(data.stars, v)),
-		)
-		.map((v) => v.id)
+	const ids = ordered(
+		verses
+			.filter(
+				(v) =>
+					inScope(v.id, scope) && (!starredOnly || isStarred(data.stars, v)),
+			)
+			.map((v) => v.id),
+		data.settings.reviewOrder,
+	)
 	ids.sort((a, b) => (data.drill[a] ?? 0) - (data.drill[b] ?? 0))
 	return ids
 }

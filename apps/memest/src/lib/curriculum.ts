@@ -1,5 +1,5 @@
 import { parts, verses } from './data'
-import type { DailyOrder } from './types'
+import type { ReviewOrder } from './types'
 
 /**
  * 매일 복습의 진도표 — 목차 순서를 하루치로 잘라 놓은 고정 목록.
@@ -90,14 +90,14 @@ export const fullLap = () => days.map((_, i) => i)
  * 남은 묶음(진도표 인덱스)을 순서 설정대로 줄 세운다.
  * 정순·역순은 **인덱스 기준 정렬**이라 이미 섞인 상태에서 바꿔도 제자리를 찾는다.
  */
-export function orderDays(indices: number[], order: DailyOrder): number[] {
+export function orderDays(indices: number[], order: ReviewOrder): number[] {
 	if (order === 'shuffle') return ordered(indices, 'shuffle')
 	const a = [...indices].sort((x, y) => x - y)
 	return order === 'backward' ? a.reverse() : a
 }
 
 /** 목차 순서로 들어온 항목을 순서 설정대로 (하루치 안의 구절 차례) */
-export function ordered<T>(items: T[], order: DailyOrder): T[] {
+export function ordered<T>(items: T[], order: ReviewOrder): T[] {
 	const a = [...items]
 	if (order === 'backward') return a.reverse()
 	if (order === 'shuffle') {

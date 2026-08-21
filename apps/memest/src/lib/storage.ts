@@ -1,6 +1,6 @@
 import { defaultData } from './app-state'
 import { fullLap, orderDays } from './curriculum'
-import type { AppData, Session } from './types'
+import type { AppData, ReviewOrder, Session } from './types'
 
 const KEY = 'memest:v1'
 
@@ -12,8 +12,16 @@ export function loadData(): AppData {
 			session?: (Session & { mode: string }) | null // v0.2까지의 단일 세션
 			progress?: Record<string, unknown> // v0.3.0까지의 Leitner 기록
 			daily?: Partial<AppData['daily']> & { cursor?: number }
+			settings?: Partial<AppData['settings']> & { dailyOrder?: ReviewOrder } // v0.3.1의 이름
 		}
-		const settings = { ...defaultData.settings, ...parsed.settings }
+		const settings = {
+			...defaultData.settings,
+			...parsed.settings,
+			reviewOrder:
+				parsed.settings?.reviewOrder ??
+				parsed.settings?.dailyOrder ??
+				defaultData.settings.reviewOrder,
+		}
 		const sessions = parsed.sessions ?? migrateSession(parsed.session)
 		return {
 			// Leitner를 걷어내며 progress는 "본 적 있다"는 흔적만 남긴다
@@ -28,7 +36,7 @@ export function loadData(): AppData {
 					: // v0.3.0의 cursor(몇 번째까지 했나) → 남은 묶음 큐
 						orderDays(
 							fullLap().filter((i) => i >= (parsed.daily?.cursor ?? 0)),
-							settings.dailyOrder,
+							settings.reviewOrder,
 						),
 				doneDate: parsed.daily?.doneDate ?? null,
 			},

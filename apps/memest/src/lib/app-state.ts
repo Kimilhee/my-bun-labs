@@ -9,7 +9,7 @@ import {
 	turnScore,
 } from './drill'
 import { buildDrillQueue } from './session'
-import type { AppData, DailyOrder, Session, SessionMode } from './types'
+import type { AppData, ReviewOrder, Session, SessionMode } from './types'
 
 export const defaultData: AppData = {
 	seen: {},
@@ -18,7 +18,7 @@ export const defaultData: AppData = {
 	stats: {},
 	settings: {
 		mode: 'daily',
-		dailyOrder: 'forward',
+		reviewOrder: 'forward',
 		scopeParts: null,
 		listFull: true,
 	},
@@ -39,7 +39,7 @@ export type Action =
 	| { type: 'next'; wrong: boolean }
 	| { type: 'quitSession' } // 지금 모드의 세션을 버린다
 	| { type: 'setListFull'; on: boolean }
-	| { type: 'setDailyOrder'; order: DailyOrder }
+	| { type: 'setReviewOrder'; order: ReviewOrder }
 	| { type: 'redoVerse'; verseId: string; showAnswer?: boolean } // 지나온 구절을 다시 현재 카드로 (showAnswer면 전문부터)
 	| { type: 'importData'; data: AppData }
 	| { type: 'resetProgress' }
@@ -85,7 +85,7 @@ export function reduce(data: AppData, action: Action): AppData {
 					...data.sessions,
 					daily: newSession(
 						'daily',
-						ordered(today.ids, data.settings.dailyOrder),
+						ordered(today.ids, data.settings.reviewOrder),
 						null,
 					),
 				},
@@ -177,7 +177,7 @@ export function reduce(data: AppData, action: Action): AppData {
 				daily = {
 					order: rest.length
 						? rest
-						: orderDays(fullLap(), data.settings.dailyOrder),
+						: orderDays(fullLap(), data.settings.reviewOrder),
 					doneDate: todayStr(),
 				}
 			}
@@ -190,11 +190,11 @@ export function reduce(data: AppData, action: Action): AppData {
 				...data,
 				settings: { ...data.settings, listFull: action.on },
 			}
-		case 'setDailyOrder':
+		case 'setReviewOrder':
 			// 진행 중인 오늘 분량은 그대로 두고, 남은 묶음만 새 순서로 다시 세운다
 			return {
 				...data,
-				settings: { ...data.settings, dailyOrder: action.order },
+				settings: { ...data.settings, reviewOrder: action.order },
 				daily: {
 					...data.daily,
 					order: orderDays(data.daily.order, action.order),
@@ -221,7 +221,7 @@ export function reduce(data: AppData, action: Action): AppData {
 				drill: {},
 				stats: {},
 				daily: {
-					order: orderDays(fullLap(), data.settings.dailyOrder),
+					order: orderDays(fullLap(), data.settings.reviewOrder),
 					doneDate: null,
 				},
 				sessions: { daily: null, drill: null },

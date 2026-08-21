@@ -22,7 +22,7 @@ BTT/            # 원본 데이터 (EUC-KR, 수정 금지 — 변환기의 입�
 data/           # verses.json(카드 495개)·parts.json(파트 16개) — convert가 생성
 scripts/convert-btt.ts
 src/
-  lib/          # 순수 로직: types, data, curriculum(42일 진도표·순서), drill(하드드릴 부채),
+  lib/          # 순수 로직: types, data, curriculum(42일 진도표·복습 순서), drill(하드드릴 부채),
                 #   session(큐·범위), app-state(리듀서), hints(초성),
                 #   match(어절·첫머리 매칭), speech(Web Speech 래퍼), storage
   ui/           # 화면: session-screen(핵심), start-screen(홈 = 모드 2장), 시트들
