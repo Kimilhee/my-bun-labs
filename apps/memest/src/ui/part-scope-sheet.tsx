@@ -1,14 +1,13 @@
 import { useState } from 'react'
-import { parts, verses } from '../lib/data'
+import { isStarred, parts, verses } from '../lib/data'
 import { scopeKey } from '../lib/session'
-import type { Part } from '../lib/types'
-import type { TitleScope } from './verse-list-sheet'
+import type { AppData, Part } from '../lib/types'
 
 type Props = {
-	scope: string[] | null // null = 전체
-	onChange: (codes: string[] | null) => void
-	/** 우측 구절 수를 누르면 그 범위의 구절 리스트를 띄운다 (세션 중에만) */
-	onShowList?: (scope: TitleScope) => void
+	scope: string[] | null // null = 전체 (마지막에 고른 범위)
+	stars: AppData['stars']
+	/** 고른 범위로 하드드릴 세션을 시작한다 */
+	onApply: (scope: string[] | null, starredOnly: boolean) => void
 	onClose: () => void
 }
 
@@ -58,14 +57,10 @@ function collapse(selected: Set<string>): string[] {
 const countOf = (leaf: string) =>
 	midCounts.get(leaf) ?? parts.find((p) => p.code === leaf)?.count ?? 0
 
-/** 복습 범위 선택 시트. [적용]을 눌러야 반영되고, [취소]·배경 탭은 폐기. */
-export function PartScopeSheet({
-	scope,
-	onChange,
-	onShowList,
-	onClose,
-}: Props) {
+/** 하드드릴 범위 선택 시트. [시작]을 눌러야 반영되고, [취소]·배경 탭은 폐기. */
+export function PartScopeSheet({ scope, stars, onApply, onClose }: Props) {
 	const [selected, setSelected] = useState<Set<string>>(() => expand(scope))
+	const [starredOnly, setStarredOnly] = useState(false)
 	// ▸ 탭으로 편 파트 (중제목이 있는 파트에만 화살표가 붙는다)
 	const [open, setOpen] = useState<Set<string>>(() => new Set<string>())
 
@@ -92,10 +87,21 @@ export function PartScopeSheet({
 			return next
 		})
 
-	const apply = () => {
-		onChange(selected.size === allLeaves.length ? null : collapse(selected))
-		onClose()
-	}
+	const picked = selected.size === allLeaves.length ? null : collapse(selected)
+	// 별표만 필터를 켜면 실제 시작 구절 수가 줄어든다
+	const startCount = starredOnly
+		? verses.filter(
+				(v) =>
+					[...selected].some((leaf) => {
+						const cut = leaf.indexOf('#')
+						const code = cut < 0 ? leaf : leaf.slice(0, cut)
+						return (
+							v.id.startsWith(`${code}-`) &&
+							(cut < 0 || v.midTitle === leaf.slice(cut + 1))
+						)
+					}) && isStarred(stars, v),
+			).length
+		: verseCount
 
 	return (
 		<div className="sheet-backdrop">
@@ -107,7 +113,7 @@ export function PartScopeSheet({
 			/>
 			<div className="sheet full">
 				<div className="sheet-head">
-					<b>복습 범위</b>
+					<b>하드드릴 범위</b>
 					<span className="note">
 						{partCount}개 파트 · {verseCount}구절
 					</span>
@@ -161,20 +167,7 @@ export function PartScopeSheet({
 										)}
 									</label>
 									<span className="spacer" />
-									{onShowList ? (
-										<button
-											type="button"
-											className="scope-count"
-											onClick={() =>
-												onShowList({ part: p.part, midTitle: null })
-											}
-											aria-label={`${p.part} 구절 리스트`}
-										>
-											{p.count}
-										</button>
-									) : (
-										<span className="note">{p.count}</span>
-									)}
+									<span className="scope-count">{p.count}</span>
 								</div>
 								{expanded &&
 									p.midTitles.map((mid) => {
@@ -193,20 +186,7 @@ export function PartScopeSheet({
 													{mid}
 												</label>
 												<span className="spacer" />
-												{onShowList ? (
-													<button
-														type="button"
-														className="scope-count"
-														onClick={() =>
-															onShowList({ part: p.part, midTitle: mid })
-														}
-														aria-label={`${mid} 구절 리스트`}
-													>
-														{countOf(leaf)}
-													</button>
-												) : (
-													<span className="note">{countOf(leaf)}</span>
-												)}
+												<span className="scope-count">{countOf(leaf)}</span>
 											</div>
 										)
 									})}
@@ -215,9 +195,17 @@ export function PartScopeSheet({
 					})}
 					{selected.size === 0 && (
 						<p className="note scope-warn">
-							최소 1개 범위를 선택해야 적용할 수 있습니다.
+							최소 1개 범위를 선택해야 시작할 수 있습니다.
 						</p>
 					)}
+					<label className="row scope-starred">
+						<input
+							type="checkbox"
+							checked={starredOnly}
+							onChange={(e) => setStarredOnly(e.target.checked)}
+						/>
+						별표한 구절만
+					</label>
 				</div>
 				<div className="actions sheet-actions">
 					<button type="button" className="btn" onClick={onClose}>
@@ -226,10 +214,10 @@ export function PartScopeSheet({
 					<button
 						type="button"
 						className="btn primary"
-						disabled={selected.size === 0}
-						onClick={apply}
+						disabled={startCount === 0}
+						onClick={() => onApply(picked, starredOnly)}
 					>
-						적용 ({verseCount}구절)
+						시작 ({startCount}구절)
 					</button>
 				</div>
 			</div>

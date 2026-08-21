@@ -1,3 +1,4 @@
+import { dayAt } from './curriculum'
 import { mustVerse } from './data'
 import {
 	bumpStats,
@@ -7,9 +8,9 @@ import {
 	revealPenalty,
 	turnScore,
 } from './drill'
-import { grade } from './scheduler'
-import { buildDailyQueue, buildIntensiveQueue } from './session'
-import type { AppData, Session } from './types'
+import { grade, todayStr } from './scheduler'
+import { buildDrillQueue } from './session'
+import type { AppData, Session, SessionMode } from './types'
 
 export const defaultData: AppData = {
 	progress: {},
@@ -17,22 +18,18 @@ export const defaultData: AppData = {
 	stars: {},
 	stats: {},
 	settings: {
-		dailySize: 20,
+		mode: 'daily',
 		scopeParts: null,
-		hardDrill: false,
 		listFull: true,
 	},
-	session: null,
+	daily: { cursor: 0, doneDate: null },
+	sessions: { daily: null, drill: null },
 }
 
 export type Action =
-	| { type: 'startDaily' }
-	| {
-			type: 'startIntensive'
-			codes: string[]
-			starredOnly: boolean
-			cap: number
-	  }
+	| { type: 'setMode'; mode: SessionMode }
+	| { type: 'startDaily' } // 오늘 진도 한 묶음
+	| { type: 'startDrill'; scope: string[] | null; starredOnly: boolean }
 	| { type: 'hint' }
 	| { type: 'revealWord' } // 더블탭으로 다음 어절 열기 (하드드릴 감점)
 	| { type: 'toggleStar'; verseId: string }
@@ -40,11 +37,8 @@ export type Action =
 	| { type: 'reveal' } // 힌트 다 쓰고 정답 보기
 	| { type: 'backToCue' } // 정답 확인 화면에서 다시 시도로 복귀 (정답 안 봤을 때만 UI 노출)
 	| { type: 'next'; wrong: boolean }
-	| { type: 'quitSession' }
-	| { type: 'setDailySize'; size: number }
-	| { type: 'setHardDrill'; on: boolean }
+	| { type: 'quitSession' } // 지금 모드의 세션을 버린다
 	| { type: 'setListFull'; on: boolean }
-	| { type: 'setScopeParts'; codes: string[] | null }
 	| { type: 'redoVerse'; verseId: string; showAnswer?: boolean } // 지나온 구절을 다시 현재 카드로 (showAnswer면 전문부터)
 	| { type: 'importData'; data: AppData }
 	| { type: 'resetProgress' }
@@ -58,7 +52,7 @@ const freshCard = {
 }
 
 function newSession(
-	mode: Session['mode'],
+	mode: SessionMode,
 	queue: string[],
 	scopeCodes: string[] | null,
 ): Session | null {
@@ -66,39 +60,45 @@ function newSession(
 	return { mode, queue, history: [], scopeCodes, ...freshCard }
 }
 
+/** 지금 모드의 세션만 갈아끼운다 (다른 모드의 진행은 건드리지 않는다) */
+function put(data: AppData, session: Session | null): AppData {
+	return {
+		...data,
+		sessions: { ...data.sessions, [data.settings.mode]: session },
+	}
+}
+
 export function reduce(data: AppData, action: Action): AppData {
-	const s = data.session
+	const mode = data.settings.mode
+	const s = data.sessions[mode]
 	switch (action.type) {
+		case 'setMode':
+			return { ...data, settings: { ...data.settings, mode: action.mode } }
 		case 'startDaily':
 			return {
 				...data,
-				session: newSession('daily', buildDailyQueue(data), null),
+				settings: { ...data.settings, mode: 'daily' },
+				sessions: {
+					...data.sessions,
+					daily: newSession('daily', [...dayAt(data.daily.cursor).ids], null),
+				},
 			}
-		case 'startIntensive':
+		case 'startDrill': {
+			const queue = buildDrillQueue(action.scope, action.starredOnly, data)
 			return {
 				...data,
-				session: newSession(
-					'intensive',
-					buildIntensiveQueue(
-						action.codes,
-						action.starredOnly,
-						action.cap,
-						data.stars,
-						data.settings.hardDrill ? data.drill : undefined,
-					),
-					action.codes,
-				),
+				settings: { ...data.settings, mode: 'drill', scopeParts: action.scope },
+				sessions: {
+					...data.sessions,
+					drill: newSession('drill', queue, action.scope),
+				},
 			}
+		}
 		case 'hint':
-			return s
-				? { ...data, session: { ...s, hintsUsed: s.hintsUsed + 1 } }
-				: data
+			return s ? put(data, { ...s, hintsUsed: s.hintsUsed + 1 }) : data
 		case 'revealWord':
 			return s
-				? {
-						...data,
-						session: { ...s, revealedWords: (s.revealedWords ?? 0) + 1 },
-					}
+				? put(data, { ...s, revealedWords: (s.revealedWords ?? 0) + 1 })
 				: data
 		case 'toggleStar': {
 			const v = mustVerse(action.verseId)
@@ -111,17 +111,11 @@ export function reduce(data: AppData, action: Action): AppData {
 			}
 		}
 		case 'recalled':
-			return s
-				? { ...data, session: { ...s, stage: 'answer', revealed: false } }
-				: data
+			return s ? put(data, { ...s, stage: 'answer', revealed: false }) : data
 		case 'reveal':
-			return s
-				? { ...data, session: { ...s, stage: 'answer', revealed: true } }
-				: data
+			return s ? put(data, { ...s, stage: 'answer', revealed: true }) : data
 		case 'backToCue':
-			return s
-				? { ...data, session: { ...s, stage: 'cue', revealed: false } }
-				: data
+			return s ? put(data, { ...s, stage: 'cue', revealed: false }) : data
 		case 'next': {
 			const id = s?.queue[0]
 			if (!s || !id) return data
@@ -129,6 +123,7 @@ export function reduce(data: AppData, action: Action): AppData {
 			// peeked = 전문 공개 상태로 열린 브라우징 회차 — 채점·집계에서 전부 제외
 			const scored = !s.peeked
 			const counted = scored && !s.history.some((e) => e.verseId === id)
+			// box/due는 지금 어느 화면도 쓰지 않지만 기록은 계속 쌓아둔다
 			const progress = counted
 				? {
 						...data.progress,
@@ -142,9 +137,8 @@ export function reduce(data: AppData, action: Action): AppData {
 
 			let drill = data.drill
 			let queue = rest
-			if (data.settings.hardDrill && scored) {
+			if (s.mode === 'drill' && scored) {
 				// 부채가 깊을수록 가까이 되돌아오고, 0 이상이 되면 졸업(항목 삭제)
-				// 힌트 감점 + 더블탭으로 열어본 어절 감점
 				const score = Math.max(
 					DRILL_FLOOR,
 					(data.drill[id] ?? 0) +
@@ -157,14 +151,9 @@ export function reduce(data: AppData, action: Action): AppData {
 					drill[id] = score
 					queue = insertAt(rest, id, requeueGap(score))
 				}
-			} else if (!data.settings.hardDrill) {
-				// 기존 재큐잉: 집중은 맨몸으로 열릴 때까지, 일일은 정답 공개 시 1회만
-				const requeue =
-					scored &&
-					(s.mode === 'intensive'
-						? wrong || s.hintsUsed > 0
-						: wrong && s.history.filter((e) => e.verseId === id).length === 0)
-				if (requeue) queue = [...rest, id]
+			} else if (s.mode === 'daily' && scored && wrong) {
+				// 매일 복습은 점수를 매기지 않는다 — 틀린 구절만 맨 뒤로 보내 맞출 때까지
+				queue = [...rest, id]
 			}
 			const history = [
 				...s.history,
@@ -177,20 +166,15 @@ export function reduce(data: AppData, action: Action): AppData {
 				...freshCard,
 				stage: queue.length === 0 ? 'done' : 'cue',
 			}
-			return { ...data, progress, drill, stats, session }
+			// 오늘 분량을 끝냈으면 진도를 한 칸 밀고 오늘 날짜를 찍는다 (내일 다음 묶음)
+			const daily =
+				s.mode === 'daily' && queue.length === 0
+					? { cursor: data.daily.cursor + 1, doneDate: todayStr() }
+					: data.daily
+			return { ...put(data, session), progress, drill, stats, daily }
 		}
 		case 'quitSession':
-			return { ...data, session: null }
-		case 'setDailySize':
-			return {
-				...data,
-				settings: { ...data.settings, dailySize: Math.max(1, action.size) },
-			}
-		case 'setHardDrill':
-			return {
-				...data,
-				settings: { ...data.settings, hardDrill: action.on },
-			}
+			return put(data, null)
 		case 'setListFull':
 			return {
 				...data,
@@ -200,33 +184,24 @@ export function reduce(data: AppData, action: Action): AppData {
 			if (!s || s.queue[0] === action.verseId) return data
 			// 이미 채점된 카드의 재도전이면 history에 있으니 counted=false로 처리됨.
 			// 대기 중이던 카드를 고르면 복제 대신 맨 앞으로 이동.
-			return {
-				...data,
-				session: {
-					...s,
-					queue: [
-						action.verseId,
-						...s.queue.filter((q) => q !== action.verseId),
-					],
-					...freshCard,
-					stage: action.showAnswer ? 'answer' : 'cue',
-					peeked: Boolean(action.showAnswer),
-				},
-			}
-		}
-		case 'setScopeParts': {
-			const next = {
-				...data,
-				settings: { ...data.settings, scopeParts: action.codes },
-			}
-			// 진행 중인 일일 세션은 새 범위로 즉시 재구성 (집중 세션은 유지)
-			if (next.session?.mode === 'daily')
-				next.session = newSession('daily', buildDailyQueue(next), null)
-			return next
+			return put(data, {
+				...s,
+				queue: [action.verseId, ...s.queue.filter((q) => q !== action.verseId)],
+				...freshCard,
+				stage: action.showAnswer ? 'answer' : 'cue',
+				peeked: Boolean(action.showAnswer),
+			})
 		}
 		case 'importData':
 			return action.data
 		case 'resetProgress':
-			return { ...data, progress: {}, drill: {}, stats: {}, session: null }
+			return {
+				...data,
+				progress: {},
+				drill: {},
+				stats: {},
+				daily: { cursor: 0, doneDate: null },
+				sessions: { daily: null, drill: null },
+			}
 	}
 }

@@ -1,15 +1,14 @@
-import { isStarred, verseById, verses } from './data'
-import { todayStr } from './scheduler'
-import type { AppData } from './types'
+import { isStarred, parts, verseById, verses } from './data'
+import type { AppData, Session } from './types'
 
 /**
- * 복습 범위 항목: 파트 코드(`conf5` = 파트 전체) 또는 `코드#중제목`(그 중제목만).
+ * 하드드릴 범위 항목: 파트 코드(`conf5` = 파트 전체) 또는 `코드#중제목`(그 중제목만).
  * 예전에 저장된 값은 전부 순수 코드라 그대로 동작한다 (하위호환).
  */
 export const scopeKey = (code: string, midTitle: string | null) =>
 	midTitle === null ? code : `${code}#${midTitle}`
 
-/** 복습 범위 판정 (null = 전체) */
+/** 범위 판정 (null = 전체) */
 export function inScope(id: string, scope: string[] | null): boolean {
 	if (scope === null) return true
 	const mid = verseById.get(id)?.midTitle ?? null
@@ -22,38 +21,44 @@ export function inScope(id: string, scope: string[] | null): boolean {
 	})
 }
 
-/** due 도래 카드 우선, 남는 자리에 미진단 카드 순서대로 (복습 범위 내에서만) */
-export function buildDailyQueue(data: AppData): string[] {
-	const today = todayStr()
-	const due: string[] = []
-	const unseen: string[] = []
-	for (const v of verses) {
-		if (!inScope(v.id, data.settings.scopeParts)) continue
-		const p = data.progress[v.id]
-		if (!p) unseen.push(v.id)
-		else if (p.due <= today) due.push(v.id)
-	}
-	due.sort((a, b) =>
-		(data.progress[a]?.due ?? '').localeCompare(data.progress[b]?.due ?? ''),
+/** 범위를 사람이 읽는 이름으로 (`DEP 3. 말씀(말씀의 가치)`) */
+export function scopeLabel(scope: string[] | null): string {
+	if (scope === null) return '전체 495구절'
+	return (
+		scope
+			.map((entry) => {
+				const cut = entry.indexOf('#')
+				const code = cut < 0 ? entry : entry.slice(0, cut)
+				const name = parts.find((p) => p.code === code)?.part ?? code
+				return cut < 0 ? name : `${name}(${entry.slice(cut + 1)})`
+			})
+			.join(', ') || '없음'
 	)
-	return [...due, ...unseen].slice(0, data.settings.dailySize)
 }
 
-/** 하드드릴이 켜져 있으면 남은 부채가 깊은 카드부터 앞에 세운다 (정렬은 안정적) */
-export function buildIntensiveQueue(
-	codes: string[],
+/**
+ * 이 세션이 다루는 구절 전체 (목차 순서). 재큐잉으로 큐에 중복이 생겨도 한 번씩.
+ * 리스트 시트와 좌우 스와이프 브라우징이 공통으로 쓰는 "세션의 목록"이다.
+ */
+export function sessionVerseIds(s: Session): string[] {
+	const set = new Set([...s.history.map((e) => e.verseId), ...s.queue])
+	return verses.filter((v) => set.has(v.id)).map((v) => v.id)
+}
+
+/**
+ * 하드드릴 큐 — 고른 범위 전체를 목차 순서로. 부채가 있으면 깊은 카드부터 앞에
+ * 세운다 (정렬은 안정적이라 나머지는 목차 순서 그대로).
+ */
+export function buildDrillQueue(
+	scope: string[] | null,
 	starredOnly: boolean,
-	cap: number,
-	stars: AppData['stars'],
-	drill?: Record<string, number>,
+	data: AppData,
 ): string[] {
 	const ids = verses
 		.filter(
-			(v) =>
-				codes.some((c) => v.id.startsWith(`${c}-`)) &&
-				(!starredOnly || isStarred(stars, v)),
+			(v) => inScope(v.id, scope) && (!starredOnly || isStarred(data.stars, v)),
 		)
 		.map((v) => v.id)
-	if (drill) ids.sort((a, b) => (drill[a] ?? 0) - (drill[b] ?? 0))
-	return ids.slice(0, cap)
+	ids.sort((a, b) => (data.drill[a] ?? 0) - (data.drill[b] ?? 0))
+	return ids
 }

@@ -5,10 +5,20 @@ import type { AppData } from '../lib/types'
 type Props = {
 	data: AppData
 	dispatch: (a: Action) => void
+	/** 세션을 버리지 않고 홈으로 */
+	onHome: () => void
+	/** 모드를 바꿔 그 모드의 세션으로 */
+	onEnter: () => void
 	onClose: () => void
 }
 
-export function SettingsSheet({ data, dispatch, onClose }: Props) {
+export function SettingsSheet({
+	data,
+	dispatch,
+	onHome,
+	onEnter,
+	onClose,
+}: Props) {
 	const [importText, setImportText] = useState('')
 	const [msg, setMsg] = useState('')
 	const [resetArmed, setResetArmed] = useState(false)
@@ -36,7 +46,6 @@ export function SettingsSheet({ data, dispatch, onClose }: Props) {
 					drill: parsed.drill ?? {},
 					stars: parsed.stars ?? {},
 					stats: parsed.stats ?? {},
-					session: parsed.session ?? null,
 				},
 			})
 			setMsg('가져오기 완료')
@@ -62,49 +71,40 @@ export function SettingsSheet({ data, dispatch, onClose }: Props) {
 					</button>
 				</div>
 				<div className="settings-body">
-					<label className="row">
-						일일 세션 크기
-						<input
-							type="number"
-							inputMode="numeric"
-							value={data.settings.dailySize}
-							onChange={(e) =>
-								dispatch({
-									type: 'setDailySize',
-									size: Number.parseInt(e.target.value, 10) || 1,
-								})
-							}
-						/>
-					</label>
-
-					<label className="row">
-						<input
-							type="checkbox"
-							checked={data.settings.hardDrill}
-							onChange={(e) =>
-								dispatch({ type: 'setHardDrill', on: e.target.checked })
-							}
-						/>
-						하드드릴 모드
-					</label>
+					<h3>모드</h3>
+					<div className="mode-pick">
+						{(['daily', 'drill'] as const).map((m) => (
+							<button
+								type="button"
+								key={m}
+								className={`btn ${data.settings.mode === m ? 'primary' : ''}`}
+								onClick={() => {
+									dispatch({ type: 'setMode', mode: m })
+									onEnter()
+									onClose()
+								}}
+							>
+								{m === 'daily' ? '매일 복습' : '하드 드릴'}
+							</button>
+						))}
+					</div>
 					<p className="note">
-						완벽하게(힌트 없이) 맞출 때까지 세션 안에서 계속 되돌아옵니다. 크게
-						무너진 구절일수록 더 가까이 다시 나옵니다.
+						두 모드는 완전히 별개의 세션입니다. 오가도 각자의 진행이 그대로
+						남아요. 매일 복습은 진도를 따라 하루치씩(점수 없음), 하드 드릴은
+						고른 범위를 부채가 없어질 때까지(점수 있음).
 						{debtCount > 0 && ` — 남은 부채 ${debtCount}구절`}
 					</p>
 
-					{data.session && (
-						<button
-							type="button"
-							className="btn"
-							onClick={() => {
-								dispatch({ type: 'quitSession' })
-								onClose()
-							}}
-						>
-							진행 중인 세션 종료
-						</button>
-					)}
+					<button
+						type="button"
+						className="btn"
+						onClick={() => {
+							onHome()
+							onClose()
+						}}
+					>
+						홈으로
+					</button>
 
 					<h3>백업</h3>
 					<button type="button" className="btn" onClick={doExport}>

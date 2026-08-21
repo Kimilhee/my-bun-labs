@@ -6,10 +6,10 @@ import {
 	useState,
 } from 'react'
 import type { Action } from '../lib/app-state'
-import { isStarred, mustVerse, parts, verses } from '../lib/data'
+import { isStarred, mustVerse, parts } from '../lib/data'
 import { hintLayers } from '../lib/hints'
 import { firstPhraseMatch, followWords } from '../lib/match'
-import { inScope } from '../lib/session'
+import { sessionVerseIds } from '../lib/session'
 import {
 	playPass,
 	type RecognizerHandle,
@@ -17,7 +17,6 @@ import {
 	startRecognition,
 } from '../lib/speech'
 import type { AppData, Session } from '../lib/types'
-import { PartScopeSheet } from './part-scope-sheet'
 import { type TitleScope, VerseListSheet } from './verse-list-sheet'
 
 // 첫머리 음성 확인 상태 (전체 암송 채점 아님 — ADR-16)
@@ -61,7 +60,6 @@ function TitleTapSpan({
 
 export function SessionScreen({ data, session, dispatch, onSettings }: Props) {
 	const [listOpen, setListOpen] = useState(false)
-	const [scopeOpen, setScopeOpen] = useState(false)
 	const [titleScope, setTitleScope] = useState<TitleScope | null>(null)
 	const [voice, setVoice] = useState<Voice>({ status: 'idle' })
 	const recRef = useRef<RecognizerHandle | null>(null)
@@ -116,8 +114,8 @@ export function SessionScreen({ data, session, dispatch, onSettings }: Props) {
 	const total = doneCount + session.queue.length
 	// 재큐잉으로 분모가 늘어나므로 실질 남은 수(현재 카드 제외)를 따로 보여준다
 	const remaining = total - doneCount - 1
-	// 하드드릴: 이 카드에 남은 부채 (0 이상이면 표시 안 함)
-	const debt = data.settings.hardDrill ? (data.drill[id] ?? 0) : 0
+	// 하드드릴 세션에서만 부채를 보여준다 (매일 복습은 점수를 매기지 않는다)
+	const debt = session.mode === 'drill' ? (data.drill[id] ?? 0) : 0
 	// 정답 화면 하단 기호: ⊗ 총 틀린 횟수(모드 무관 누적) · ⊖ 남은 부채 · ⟳ 졸업까지 무결점 횟수
 	const wrongCount = data.stats[id]?.wrong ?? 0
 	const marks = [
@@ -175,10 +173,8 @@ export function SessionScreen({ data, session, dispatch, onSettings }: Props) {
 	// 이미 복습한 구절은 전문이 열린 채로(채점 제외 — peeked), 아니면 단서부터.
 	// 손가락을 따라 카드가 움직이고(translate3d — GPU 합성), 임계값을 넘기면
 	// 화면 밖으로 슬라이드 아웃 → 새 카드가 반대편에서 슬라이드 인. 못 넘기면 스냅백.
-	const scopeList = verses.filter((v) =>
-		inScope(v.id, session.scopeCodes ?? data.settings.scopeParts),
-	)
-	const scopeIdx = scopeList.findIndex((v) => v.id === id)
+	const scopeList = sessionVerseIds(session)
+	const scopeIdx = scopeList.indexOf(id)
 	const nextInList = scopeIdx >= 0 ? scopeList[scopeIdx + 1] : undefined
 	const prevInList = scopeIdx > 0 ? scopeList[scopeIdx - 1] : undefined
 	const canRight = Boolean(prevInList)
@@ -233,8 +229,8 @@ export function SessionScreen({ data, session, dispatch, onSettings }: Props) {
 			enterFrom.current = dir === 'left' ? 'right' : 'left'
 			dispatch({
 				type: 'redoVerse',
-				verseId: target.id,
-				showAnswer: browseOpen(target.id),
+				verseId: target,
+				showAnswer: browseOpen(target),
 			})
 		}, 180)
 	}
@@ -245,7 +241,7 @@ export function SessionScreen({ data, session, dispatch, onSettings }: Props) {
 				<button
 					type="button"
 					className="badge badge-btn"
-					onClick={() => setScopeOpen(true)}
+					onClick={() => setTitleScope({ part: verse.part, midTitle: null })}
 				>
 					{verse.part} ▾
 				</button>
@@ -507,15 +503,6 @@ export function SessionScreen({ data, session, dispatch, onSettings }: Props) {
 					onClose={() => setListOpen(false)}
 				/>
 			)}
-			{scopeOpen && (
-				<PartScopeSheet
-					scope={data.settings.scopeParts}
-					onChange={(codes) => dispatch({ type: 'setScopeParts', codes })}
-					onShowList={setTitleScope}
-					onClose={() => setScopeOpen(false)}
-				/>
-			)}
-			{/* 범위 시트 위에 겹쳐 뜬다 — 닫으면 선택을 유지한 채 범위 시트로 복귀 */}
 			{titleScope && (
 				<VerseListSheet
 					data={data}
@@ -524,7 +511,6 @@ export function SessionScreen({ data, session, dispatch, onSettings }: Props) {
 					onPick={(verseId, showAnswer) => {
 						dispatch({ type: 'redoVerse', verseId, showAnswer })
 						setTitleScope(null)
-						setScopeOpen(false)
 					}}
 					onToggleFull={(on) => dispatch({ type: 'setListFull', on })}
 					onScopeChange={setTitleScope}

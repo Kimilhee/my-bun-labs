@@ -1,57 +1,36 @@
 import { useState } from 'react'
 import type { Action } from '../lib/app-state'
-import { isStarred, parts, verses } from '../lib/data'
+import { dayAt, dayNumber, days } from '../lib/curriculum'
+import { isStarred, verses } from '../lib/data'
 import { todayStr } from '../lib/scheduler'
-import { buildIntensiveQueue, inScope } from '../lib/session'
+import { scopeLabel } from '../lib/session'
 import type { AppData } from '../lib/types'
 import { PartScopeSheet } from './part-scope-sheet'
 
 type Props = {
 	data: AppData
 	dispatch: (a: Action) => void
+	/** 세션으로 들어간다 (홈에 나와 있던 상태를 푼다) */
+	onEnter: () => void
 	onSettings: () => void
 }
 
-export function StartScreen({ data, dispatch, onSettings }: Props) {
-	const [setupOpen, setSetupOpen] = useState(false)
+/**
+ * 홈. 두 모드의 입구다 — 진도를 따라가는 [매일 복습]과, 범위를 직접 골라
+ * 부채가 없어질 때까지 파는 [하드 드릴]. 두 세션은 서로 독립이라 오가도 각자 남는다.
+ */
+export function StartScreen({ data, dispatch, onEnter, onSettings }: Props) {
 	const [scopeOpen, setScopeOpen] = useState(false)
-	const [codes, setCodes] = useState<string[]>([])
-	const [starredOnly, setStarredOnly] = useState(false)
-	const [capInput, setCapInput] = useState('')
 
-	const today = todayStr()
-	const scope = data.settings.scopeParts
-	const scoped = verses.filter((v) => inScope(v.id, scope))
-	const dueCount = scoped.filter(
-		(v) => (data.progress[v.id]?.due ?? '9999') <= today && data.progress[v.id],
-	).length
-	const unseenCount = scoped.filter((v) => !data.progress[v.id]).length
+	const today = dayAt(data.daily.cursor)
+	const dayNo = dayNumber(data.daily.cursor)
+	const daily = data.sessions.daily
+	const drill = data.sessions.drill
+	const doneToday = data.daily.doneDate === todayStr() && !daily
+
 	const starredCount = verses.filter((v) => isStarred(data.stars, v)).length
-	// 범위 항목은 `코드` 또는 `코드#중제목` — 중제목까지 골랐으면 괄호로 덧붙인다
-	const scopeLabel =
-		scope === null
-			? '전체'
-			: scope
-					.map((entry) => {
-						const cut = entry.indexOf('#')
-						const code = cut < 0 ? entry : entry.slice(0, cut)
-						const name = parts.find((p) => p.code === code)?.part ?? code
-						return cut < 0 ? name : `${name}(${entry.slice(cut + 1)})`
-					})
-					.join(', ') || '없음'
-
-	const matched = buildIntensiveQueue(
-		codes,
-		starredOnly,
-		Number.POSITIVE_INFINITY,
-		data.stars,
-	).length
-	const cap = Number.parseInt(capInput, 10) || matched
-
-	const toggleCode = (code: string) =>
-		setCodes((prev) =>
-			prev.includes(code) ? prev.filter((c) => c !== code) : [...prev, code],
-		)
+	const debtCount = Object.keys(data.drill).length
+	const left = (s: typeof daily) => (s ? new Set(s.queue).size : 0)
 
 	return (
 		<div className="screen">
@@ -69,101 +48,88 @@ export function StartScreen({ data, dispatch, onSettings }: Props) {
 			</div>
 
 			<div className="start-body">
-				<div className="stats">
-					<div className="stat">
-						<b>{dueCount}</b>
-						<span>오늘 복습</span>
+				<div className="mode-card">
+					<div className="mode-head">
+						<b>매일 복습</b>
+						<span className="note">
+							{dayNo}/{days.length}일차
+						</span>
 					</div>
-					<div className="stat">
-						<b>{unseenCount}</b>
-						<span>미진단</span>
-					</div>
-					<div className="stat">
-						<b>{starredCount}</b>
-						<span>별표</span>
-					</div>
-					<div className="stat">
-						<b>{scoped.length}</b>
-						<span>범위 내</span>
-					</div>
-				</div>
-
-				<button
-					type="button"
-					className="btn"
-					onClick={() => setScopeOpen(true)}
-				>
-					복습 범위: {scopeLabel} ▾
-				</button>
-
-				<button
-					type="button"
-					className="btn primary big"
-					onClick={() => dispatch({ type: 'startDaily' })}
-				>
-					일일 세션 시작 (
-					{Math.min(dueCount + unseenCount, data.settings.dailySize)}개)
-				</button>
-
-				<button
-					type="button"
-					className="btn"
-					onClick={() => setSetupOpen(!setupOpen)}
-				>
-					집중 세션 {setupOpen ? '접기' : '구성…'}
-				</button>
-
-				{setupOpen && (
-					<div className="intensive-setup">
-						<div className="chips">
-							{parts.map((p) => (
-								<button
-									type="button"
-									key={p.code}
-									className={`chip ${codes.includes(p.code) ? 'on' : ''}`}
-									onClick={() => toggleCode(p.code)}
-								>
-									{p.part} <small>{p.count}</small>
-								</button>
-							))}
-						</div>
-						<label className="row">
-							<input
-								type="checkbox"
-								checked={starredOnly}
-								onChange={(e) => setStarredOnly(e.target.checked)}
-							/>
-							별표 카드만
-						</label>
-						<label className="row">
-							구절 수
-							<input
-								type="number"
-								inputMode="numeric"
-								placeholder={String(matched)}
-								value={capInput}
-								onChange={(e) => setCapInput(e.target.value)}
-							/>
-							/ {matched}개 선택됨
-						</label>
+					<div className="mode-title">{today.title}</div>
+					{doneToday ? (
+						<>
+							<button type="button" className="btn big" disabled>
+								오늘 분량 완료 ✓
+							</button>
+							<p className="note">
+								다음 진도는 내일. 더 하고 싶으면 하드 드릴로.
+							</p>
+						</>
+					) : (
 						<button
 							type="button"
-							className="btn primary"
-							disabled={matched === 0}
-							onClick={() =>
-								dispatch({ type: 'startIntensive', codes, starredOnly, cap })
-							}
+							className="btn primary big"
+							onClick={() => {
+								if (!daily) dispatch({ type: 'startDaily' })
+								else dispatch({ type: 'setMode', mode: 'daily' })
+								onEnter()
+							}}
 						>
-							집중 세션 시작 ({Math.min(cap, matched)}개)
+							{daily
+								? `이어하기 (${left(daily)}구절 남음)`
+								: `시작 (${today.ids.length}구절)`}
 						</button>
+					)}
+				</div>
+
+				<div className="mode-card">
+					<div className="mode-head">
+						<b>하드 드릴</b>
+						<span className="note">
+							{debtCount > 0 ? `부채 ${debtCount}구절` : '부채 없음'}
+						</span>
 					</div>
-				)}
+					<div className="mode-title">
+						{drill
+							? scopeLabel(drill.scopeCodes)
+							: '범위를 직접 골라 부채가 없어질 때까지'}
+					</div>
+					{drill && (
+						<button
+							type="button"
+							className="btn primary big"
+							onClick={() => {
+								dispatch({ type: 'setMode', mode: 'drill' })
+								onEnter()
+							}}
+						>
+							이어하기 ({left(drill)}구절 남음)
+						</button>
+					)}
+					<button
+						type="button"
+						className={`btn ${drill ? '' : 'primary big'}`}
+						onClick={() => setScopeOpen(true)}
+					>
+						{drill ? '범위 새로 고르기…' : '범위 고르기…'}
+					</button>
+				</div>
+
+				<p className="note home-foot">
+					별표 {starredCount}구절 · 전체 {verses.length}구절 · 진도{' '}
+					{days.length}일 순환
+				</p>
 			</div>
 
 			{scopeOpen && (
 				<PartScopeSheet
-					scope={scope}
-					onChange={(next) => dispatch({ type: 'setScopeParts', codes: next })}
+					scope={data.settings.scopeParts}
+					stars={data.stars}
+					onApply={(scope, starredOnly) => {
+						dispatch({ type: 'startDrill', scope, starredOnly })
+						setScopeOpen(false)
+						onEnter()
+					}}
 					onClose={() => setScopeOpen(false)}
 				/>
 			)}

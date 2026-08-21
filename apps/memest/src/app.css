@@ -418,65 +418,43 @@ body {
 	overscroll-behavior: contain;
 }
 
-.stats {
-	display: grid;
-	grid-template-columns: repeat(4, 1fr);
-	gap: 8px;
-	margin-bottom: 8px;
-}
-
-.stat {
+/* 홈의 모드 카드 두 장 (매일 복습 / 하드 드릴) */
+.mode-card {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
 	background: #1a212c;
-	border-radius: 12px;
-	padding: 12px 6px;
+	border-radius: 16px;
+	padding: 16px;
+}
+
+.mode-head {
 	display: flex;
-	flex-direction: column;
-	align-items: center;
-	gap: 4px;
+	align-items: baseline;
+	gap: 8px;
 }
 
-.stat b {
-	font-size: 1.3rem;
+.mode-head b {
+	font-size: 1.15rem;
 }
 
-.stat span {
-	font-size: 0.72rem;
-	color: #66738a;
-}
-
-.intensive-setup {
-	display: flex;
-	flex-direction: column;
-	gap: 12px;
-	background: #161c25;
-	border-radius: 14px;
-	padding: 14px;
-}
-
-.chips {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 6px;
-}
-
-.chip {
-	border: 1px solid #2c3646;
-	background: none;
+.mode-title {
 	color: #9fb4d0;
-	border-radius: 999px;
-	padding: 6px 12px;
-	font-size: 0.8rem;
-	cursor: pointer;
+	font-size: 0.92rem;
+	line-height: 1.4;
+	word-break: keep-all;
 }
 
-.chip.on {
-	background: #2f6fed;
-	border-color: #2f6fed;
-	color: #fff;
+.home-foot {
+	text-align: center;
+	padding-top: 4px;
 }
 
-.chip small {
-	opacity: 0.65;
+/* 설정의 모드 선택 두 버튼 */
+.mode-pick {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 8px;
 }
 
 .row {
@@ -748,6 +726,12 @@ body {
 	font-size: 0.85rem;
 	padding: 5px 13px;
 	cursor: pointer;
+}
+
+.scope-starred {
+	padding: 14px 0 4px;
+	border-top: 1px solid #242e3d;
+	margin-top: 8px;
 }
 
 .scope-warn {

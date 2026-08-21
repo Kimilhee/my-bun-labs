@@ -20,7 +20,10 @@ const interval = (box: number) =>
 /**
  * 힌트 사용량 = 채점 점수.
  * - 첫 만남(prev 없음) = 진단 배치
- * - 집중 세션은 비대칭 반영: 약함 신호만 강등, 성공은 간격 연장 없음
+ * - 하드드릴은 비대칭 반영: 약함 신호만 강등, 성공은 간격 연장 없음
+ *
+ * 지금 이 값(box/due)으로 카드를 고르는 화면은 없다 — 나중에 due 기반 모드를
+ * 붙일 수 있게 기록만 계속 쌓아둔다.
  */
 export function grade(
 	prev: Progress | undefined,
@@ -44,14 +47,14 @@ export function grade(
 			streak: 0,
 			due: addDays(1),
 		}
-	if (mode === 'intensive') return hints === 0 ? prev : { ...prev, streak: 0 }
+	if (mode === 'drill') return hints === 0 ? prev : { ...prev, streak: 0 }
 	if (hints === 1)
 		return {
 			...prev,
 			streak: 0,
 			due: addDays(Math.ceil(interval(prev.box) / 2)),
 		}
-	// 일일 세션에서 힌트 0개 성공
+	// 매일 복습에서 힌트 0개 성공
 	const streak = prev.streak + 1
 	const promote = prev.level === 'C' && streak >= 2
 	const box = Math.min(prev.box + 1, INTERVALS.length - 1)

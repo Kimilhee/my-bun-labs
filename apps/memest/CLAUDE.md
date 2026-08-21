@@ -22,10 +22,10 @@ BTT/            # 원본 데이터 (EUC-KR, 수정 금지 — 변환기의 입�
 data/           # verses.json(카드 495개)·parts.json(파트 16개) — convert가 생성
 scripts/convert-btt.ts
 src/
-  lib/          # 순수 로직: types, data, scheduler(Leitner), drill(하드드릴 부채),
-                #   session(큐), app-state(리듀서), hints(초성),
-                #   match(어절·첫머리 매칭), speech(Web Speech 래퍼), storage
-  ui/           # 화면: session-screen(핵심), start-screen, 시트들
+  lib/          # 순수 로직: types, data, curriculum(42일 진도표), drill(하드드릴 부채),
+                #   session(큐·범위), app-state(리듀서), scheduler(Leitner — 기록만),
+                #   hints(초성), match(어절·첫머리 매칭), speech(Web Speech 래퍼), storage
+  ui/           # 화면: session-screen(핵심), start-screen(홈 = 모드 2장), 시트들
 docs/           # PRD / ADR / design
 ```
 
@@ -36,5 +36,7 @@ docs/           # PRD / ADR / design
 - **배포되는 변경마다 `package.json` version의 패치(맨 뒤) 숫자만 올린다.** 마이너/메이저는 사용자가 명시적으로 허락할 때만. 버전은 설정 시트 하단에 표시되며, 사용자가 폰에서 배포 반영을 확인하는 수단이다. 문서만 바꿀 땐 안 올려도 된다.
 - **검증 루틴**: `biome check --write` → `typecheck` → `build` + 로직 변경 시 `bun -e`로 리듀서/채점 헤드리스 테스트. UI는 사용자가 폰에서 실사용 확인.
 - **전체 암송의 음성 채점은 재도입하지 말 것** — v0.0~0.1에서 두 방식(대조 채점, 따라 열림)을 시도하고 정확도 문제로 제거했다 (ADR-9·14·15). 허용된 음성 기능은 **첫머리(10글자 어절) 확인**뿐: 글자 단위 50% (ADR-16). 암송 본체는 더블탭 어절 열기 + 자가 판정.
+- **모드는 둘뿐이다 (ADR-19)**: 매일 복습(42일 진도 순회, 점수 없음) / 하드 드릴(범위 직접 지정, 부채 점수). 두 세션은 `sessions.daily`·`sessions.drill`로 완전히 분리되어 오가도 각자 남는다. 범위 선택과 −점수는 하드 드릴에만 있다.
+- Leitner(`scheduler.ts`)는 기록만 남긴다 — 카드 선택에는 안 쓴다 (ADR-20). 지우지 말 것.
 - 카드는 (파트,제목,장절)이 유일 단위 — 장절 dedupe 금지 (ADR-6).
 - localStorage 스키마를 바꿀 때는 `storage.ts`의 기본값 병합으로 하위호환을 지킨다.

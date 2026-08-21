@@ -4,9 +4,9 @@ import {
 	useRef,
 	useState,
 } from 'react'
-import { isStarred, parts, verses } from '../lib/data'
+import { isStarred, parts, verseById, verses } from '../lib/data'
 import { opening } from '../lib/hints'
-import { inScope } from '../lib/session'
+import { sessionVerseIds } from '../lib/session'
 import type { AppData, Session } from '../lib/types'
 
 /** 대제목(파트) 또는 중제목 범위 — midTitle이 null이면 파트 전체 */
@@ -134,14 +134,17 @@ export function VerseListSheet({
 		}, 180)
 	}
 
-	const scopeCodes = session.scopeCodes ?? data.settings.scopeParts
 	const all = titleScope
 		? verses.filter(
 				(v) =>
 					v.part === titleScope.part &&
 					(titleScope.midTitle === null || v.midTitle === titleScope.midTitle),
 			)
-		: verses.filter((v) => inScope(v.id, scopeCodes))
+		: // 기본 리스트는 이 세션이 다루는 구절 (매일 복습은 오늘 묶음, 하드드릴은 고른 범위)
+			sessionVerseIds(session).flatMap((vid) => {
+				const v = verseById.get(vid)
+				return v ? [v] : []
+			})
 	// 별표 필터로 걸러도 일련번호는 범위 안 원래 위치를 유지한다
 	const rows = all
 		.map((v, i) => ({ v, num: i + 1 }))
@@ -165,7 +168,9 @@ export function VerseListSheet({
 					<b>
 						{titleScope
 							? (titleScope.midTitle ?? titleScope.part)
-							: '복습 구절'}
+							: session.mode === 'daily'
+								? '오늘 분량'
+								: '드릴 범위'}
 					</b>
 					<span className="note">{rows.length}개</span>
 					<span className="spacer" />

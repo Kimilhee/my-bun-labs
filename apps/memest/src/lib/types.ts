@@ -29,7 +29,8 @@ export type Progress = {
 	streak: number // 힌트 0개 연속 횟수 (C→D 승급용)
 }
 
-export type SessionMode = 'daily' | 'intensive'
+/** 두 모드는 완전히 별개의 세션으로, 서로의 진행 상태에 영향을 주지 않는다 */
+export type SessionMode = 'daily' | 'drill'
 
 export type Encounter = {
 	verseId: string
@@ -42,7 +43,7 @@ export type Session = {
 	mode: SessionMode
 	queue: string[] // queue[0]이 현재 카드
 	history: Encounter[]
-	scopeCodes: string[] | null // 집중 세션의 파트 범위 (리스트 시트용)
+	scopeCodes: string[] | null // 하드드릴 세션이 어떤 범위로 만들어졌는지 (표시용)
 	stage: 'cue' | 'answer' | 'done'
 	hintsUsed: number
 	revealed: boolean
@@ -51,10 +52,15 @@ export type Session = {
 }
 
 export type Settings = {
-	dailySize: number
-	scopeParts: string[] | null // 복습 범위 파트 코드 목록 (null = 전체)
-	hardDrill: boolean // 하드드릴: 부채가 0 이상이 될 때까지 세션 안에서 재등장
+	mode: SessionMode // 지금 어느 모드에 있는지 (앱을 다시 열어도 유지)
+	scopeParts: string[] | null // 하드드릴에서 마지막으로 고른 범위 (null = 전체)
 	listFull: boolean // 구절 리스트 시트를 전체 높이로 열지 (반만 선택하면 기억)
+}
+
+/** 매일 복습의 진도 (curriculum.days의 인덱스) */
+export type DailyProgress = {
+	cursor: number // 다음에 할 하루치
+	doneDate: string | null // 마지막으로 하루치를 끝낸 날 (오늘이면 오늘 분량 끝)
 }
 
 /** 누적 기록 (정렬·통계용, 모드 무관). 스케줄러 입력이 아니다. */
@@ -69,5 +75,7 @@ export type AppData = {
 	stars: Record<string, boolean> // 수동 별표. 없으면 BTT 원본의 Verse.starred를 쓴다
 	stats: Record<string, Stats>
 	settings: Settings
-	session: Session | null
+	daily: DailyProgress
+	/** 모드별로 따로 보관 — 오가도 각자의 진행이 그대로 남는다 */
+	sessions: { daily: Session | null; drill: Session | null }
 }
