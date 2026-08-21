@@ -118,6 +118,13 @@ export function SessionScreen({ data, session, dispatch, onSettings }: Props) {
 	const remaining = total - doneCount - 1
 	// 하드드릴: 이 카드에 남은 부채 (0 이상이면 표시 안 함)
 	const debt = data.settings.hardDrill ? (data.drill[id] ?? 0) : 0
+	// 정답 화면 하단 기호: 총 틀린 횟수(모드 무관 누적)와 남은 부채
+	const marks = [
+		data.stats[id]?.wrong ? `✗ ${data.stats[id]?.wrong}` : null,
+		debt < 0 ? `${debt}` : null,
+	]
+		.filter(Boolean)
+		.join(' · ')
 
 	const words = followWords(verse.text)
 	// 더블탭으로 연 어절 수 — 세션 상태에 두어야 하드드릴 감점(-3/어절)에 반영된다
@@ -431,14 +438,10 @@ export function SessionScreen({ data, session, dispatch, onSettings }: Props) {
 								<span className="star-on"> ⭐</span>
 							)}
 						</button>
-						{/* 하드드릴 부채 — 졸업까지 무결점 몇 회가 남았는지 대략 보여준다 */}
-						{debt < 0 && (
-							<div className="debt-note">
-								{debt}점 · 무결점 {Math.ceil(-debt / 10)}회면 졸업
-							</div>
-						)}
 						<p className="text">{verse.text}</p>
 						{verse.note && <p className="note">메모: {verse.note}</p>}
+						{/* 본문 밑 오른쪽에 기호만: ✗ 총 틀린 횟수 · 남은 부채 */}
+						{marks && <div className="debt-note">{marks}</div>}
 						{session.revealed && (
 							<p className="revealed-tag">정답 확인 — 읽고 다시 만나요</p>
 						)}
