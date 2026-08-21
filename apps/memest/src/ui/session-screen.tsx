@@ -340,8 +340,10 @@ export function SessionScreen({ data, session, dispatch, onSettings }: Props) {
 					>
 						<div className="hierarchy">
 							{verse.part}
-							{verse.midTitle ? ` › ${verse.midTitle}` : ''} ›{' '}
-							<b>{verse.title}</b>
+							{verse.midTitle ? ` › ${verse.midTitle}` : ''}
+						</div>
+						<div className="sub-title">
+							{verse.title}
 							{verse.starred && ' ⭐'}
 						</div>
 						<div className="ref">{verse.ref}</div>
