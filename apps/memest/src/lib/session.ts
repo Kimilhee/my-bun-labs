@@ -1,10 +1,26 @@
-import { isStarred, verses } from './data'
+import { isStarred, verseById, verses } from './data'
 import { todayStr } from './scheduler'
 import type { AppData } from './types'
 
+/**
+ * 복습 범위 항목: 파트 코드(`conf5` = 파트 전체) 또는 `코드#중제목`(그 중제목만).
+ * 예전에 저장된 값은 전부 순수 코드라 그대로 동작한다 (하위호환).
+ */
+export const scopeKey = (code: string, midTitle: string | null) =>
+	midTitle === null ? code : `${code}#${midTitle}`
+
 /** 복습 범위 판정 (null = 전체) */
-export const inScope = (id: string, scope: string[] | null) =>
-	scope === null || scope.some((c) => id.startsWith(`${c}-`))
+export function inScope(id: string, scope: string[] | null): boolean {
+	if (scope === null) return true
+	const mid = verseById.get(id)?.midTitle ?? null
+	return scope.some((entry) => {
+		const cut = entry.indexOf('#')
+		if (cut < 0) return id.startsWith(`${entry}-`)
+		return (
+			id.startsWith(`${entry.slice(0, cut)}-`) && mid === entry.slice(cut + 1)
+		)
+	})
+}
 
 /** due 도래 카드 우선, 남는 자리에 미진단 카드 순서대로 (복습 범위 내에서만) */
 export function buildDailyQueue(data: AppData): string[] {

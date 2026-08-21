@@ -705,6 +705,27 @@ body {
 	color: #e8eaed;
 }
 
+/* ▸/▾ 펼침 버튼 — 중제목이 없는 파트에는 빈 span으로 자리만 맞춘다 */
+.scope-caret {
+	flex: 0 0 auto;
+	width: 26px;
+	background: none;
+	border: none;
+	color: #66738a;
+	font-size: 0.85rem;
+	padding: 6px 0;
+	text-align: left;
+	cursor: pointer;
+}
+
+/* 펼쳐진 중제목 행 — 한 단 들여쓰고 조금 작게 */
+.scope-mid {
+	background: #161c25;
+	font-size: 0.92rem;
+	color: #b9c3d1;
+	padding-left: 18px;
+}
+
 /* 체크박스 토글 영역 (우측 구절 수 버튼과 분리) */
 .scope-pick {
 	display: flex;

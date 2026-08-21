@@ -27,12 +27,17 @@ export function StartScreen({ data, dispatch, onSettings }: Props) {
 	).length
 	const unseenCount = scoped.filter((v) => !data.progress[v.id]).length
 	const starredCount = verses.filter((v) => isStarred(data.stars, v)).length
+	// 범위 항목은 `코드` 또는 `코드#중제목` — 중제목까지 골랐으면 괄호로 덧붙인다
 	const scopeLabel =
 		scope === null
 			? '전체'
-			: parts
-					.filter((p) => scope.includes(p.code))
-					.map((p) => p.part)
+			: scope
+					.map((entry) => {
+						const cut = entry.indexOf('#')
+						const code = cut < 0 ? entry : entry.slice(0, cut)
+						const name = parts.find((p) => p.code === code)?.part ?? code
+						return cut < 0 ? name : `${name}(${entry.slice(cut + 1)})`
+					})
 					.join(', ') || '없음'
 
 	const matched = buildIntensiveQueue(
