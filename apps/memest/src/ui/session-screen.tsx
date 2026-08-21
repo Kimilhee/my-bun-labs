@@ -1,4 +1,5 @@
 import {
+	type ReactNode,
 	type TouchEvent as ReactTouchEvent,
 	useEffect,
 	useRef,
@@ -31,6 +32,31 @@ type Props = {
 	session: Session
 	dispatch: (a: Action) => void
 	onSettings: () => void
+}
+
+/** 제목 탭만 가로채고 나머지 제스처(더블탭·스와이프)는 단서 영역으로 흘려보낸다 */
+function TitleTapSpan({
+	className,
+	onOpen,
+	children,
+}: {
+	className: string
+	onOpen: () => void
+	children: ReactNode
+}) {
+	return (
+		<button
+			type="button"
+			className={`${className} title-link`}
+			onClick={(e) => {
+				e.stopPropagation()
+				onOpen()
+			}}
+			onDoubleClick={(e) => e.stopPropagation()}
+		>
+			{children}
+		</button>
+	)
 }
 
 export function SessionScreen({ data, session, dispatch, onSettings }: Props) {
@@ -228,8 +254,10 @@ export function SessionScreen({ data, session, dispatch, onSettings }: Props) {
 
 			{session.stage === 'cue' ? (
 				<>
-					<button
-						type="button"
+					{/* 버튼이 아니라 div — 안에 제목 탭 버튼이 들어가므로 중첩을 피한다.
+					    더블탭·스와이프는 제스처라 키보드 대응 대상이 아니다. */}
+					<section
+						aria-label="단서 — 두 번 터치하면 다음 어절"
 						className="cue follow-area"
 						ref={(el) => {
 							slideRef.current = el
@@ -242,9 +270,28 @@ export function SessionScreen({ data, session, dispatch, onSettings }: Props) {
 					>
 						{(bigTitle || verse.midTitle) && (
 							<span className="cue-titles">
-								{bigTitle && <span className="cue-big">{bigTitle}</span>}
+								{bigTitle && (
+									<TitleTapSpan
+										className="cue-big"
+										onOpen={() =>
+											setTitleScope({ part: verse.part, midTitle: null })
+										}
+									>
+										{bigTitle}
+									</TitleTapSpan>
+								)}
 								{verse.midTitle && (
-									<span className="cue-mid">{verse.midTitle}</span>
+									<TitleTapSpan
+										className="cue-mid"
+										onOpen={() =>
+											setTitleScope({
+												part: verse.part,
+												midTitle: verse.midTitle,
+											})
+										}
+									>
+										{verse.midTitle}
+									</TitleTapSpan>
 								)}
 							</span>
 						)}
@@ -275,7 +322,7 @@ export function SessionScreen({ data, session, dispatch, onSettings }: Props) {
 							두 번 터치 = 다음 어절 열기
 							{revealed > 0 && ` (${revealed}/${words.length})`}
 						</span>
-					</button>
+					</section>
 					<div className="bottom">
 						<div className={`actions ${canSpeak ? 'three' : ''}`}>
 							{hintsLeft ? (
@@ -351,7 +398,7 @@ export function SessionScreen({ data, session, dispatch, onSettings }: Props) {
 							</button>
 							{verse.midTitle && (
 								<>
-									{' › '}
+									<span className="hierarchy-sep">›</span>
 									<button
 										type="button"
 										className="title-link"
@@ -437,6 +484,15 @@ export function SessionScreen({ data, session, dispatch, onSettings }: Props) {
 					onClose={() => setListOpen(false)}
 				/>
 			)}
+			{scopeOpen && (
+				<PartScopeSheet
+					scope={data.settings.scopeParts}
+					onChange={(codes) => dispatch({ type: 'setScopeParts', codes })}
+					onShowList={setTitleScope}
+					onClose={() => setScopeOpen(false)}
+				/>
+			)}
+			{/* 범위 시트 위에 겹쳐 뜬다 — 닫으면 선택을 유지한 채 범위 시트로 복귀 */}
 			{titleScope && (
 				<VerseListSheet
 					data={data}
@@ -445,16 +501,11 @@ export function SessionScreen({ data, session, dispatch, onSettings }: Props) {
 					onPick={(verseId, showAnswer) => {
 						dispatch({ type: 'redoVerse', verseId, showAnswer })
 						setTitleScope(null)
+						setScopeOpen(false)
 					}}
 					onToggleFull={(on) => dispatch({ type: 'setListFull', on })}
+					onScopeChange={setTitleScope}
 					onClose={() => setTitleScope(null)}
-				/>
-			)}
-			{scopeOpen && (
-				<PartScopeSheet
-					scope={data.settings.scopeParts}
-					onChange={(codes) => dispatch({ type: 'setScopeParts', codes })}
-					onClose={() => setScopeOpen(false)}
 				/>
 			)}
 		</div>

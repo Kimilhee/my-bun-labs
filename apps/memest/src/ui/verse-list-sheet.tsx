@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { verses } from '../lib/data'
+import { type TouchEvent as ReactTouchEvent, useRef, useState } from 'react'
+import { parts, verses } from '../lib/data'
 import { opening } from '../lib/hints'
 import { inScope } from '../lib/session'
 import type { AppData, Session } from '../lib/types'
@@ -16,6 +16,8 @@ type Props = {
 	onPick: (verseId: string, showAnswer: boolean) => void
 	/** 전체/반만 선택은 설정에 남아 다음에 열 때도 유지된다 */
 	onToggleFull: (full: boolean) => void
+	/** 제목 범위에서 좌우 스와이프 → 이전/다음 대제목 */
+	onScopeChange?: (scope: TitleScope) => void
 	onClose: () => void
 }
 
@@ -30,10 +32,29 @@ export function VerseListSheet({
 	titleScope,
 	onPick,
 	onToggleFull,
+	onScopeChange,
 	onClose,
 }: Props) {
 	const full = data.settings.listFull
 	const [expandedId, setExpandedId] = useState<string | null>(null)
+	const touchStart = useRef<{ x: number; y: number } | null>(null)
+
+	/** 좌우 스와이프로 이전/다음 대제목 (제목 범위 리스트에서만) */
+	const onTouchStart = (e: ReactTouchEvent) => {
+		const t = e.touches[0]
+		touchStart.current = t ? { x: t.clientX, y: t.clientY } : null
+	}
+	const onTouchEnd = (e: ReactTouchEvent) => {
+		const d = touchStart.current
+		const t = e.changedTouches[0]
+		touchStart.current = null
+		if (!d || !t || !titleScope || !onScopeChange) return
+		const dx = t.clientX - d.x
+		if (Math.abs(dx) < 60 || Math.abs(dx) <= Math.abs(t.clientY - d.y)) return
+		const i = parts.findIndex((p) => p.part === titleScope.part)
+		const next = parts[i + (dx < 0 ? 1 : -1)]
+		if (next) onScopeChange({ part: next.part, midTitle: null })
+	}
 
 	const scopeCodes = session.scopeCodes ?? data.settings.scopeParts
 	const scope = titleScope
@@ -77,13 +98,19 @@ export function VerseListSheet({
 						닫기
 					</button>
 				</div>
-				<div className="sheet-list">
+				<div
+					className="sheet-list"
+					onTouchStart={onTouchStart}
+					onTouchEnd={onTouchEnd}
+					onTouchCancel={onTouchEnd}
+				>
 					{scope.map((v, i) => {
 						// 기본은 파트로, 제목 범위에서는 중제목으로 묶는다
 						const group = titleScope ? (v.midTitle ?? '') : v.part
 						const header = group !== lastGroup ? group : null
 						lastGroup = group
-						const isCurrent = v.id === currentId
+						// 제목 범위 리스트에서는 현재 카드도 다른 구절과 똑같이 보여준다
+						const isCurrent = v.id === currentId && !titleScope
 						// 이번 세션에서 확인했거나, 이전 세션에서 다뤘고 지금 대기열에 없는 카드만 공개
 						const revealed =
 							!isCurrent &&
@@ -109,7 +136,7 @@ export function VerseListSheet({
 											setExpandedId(expandedId === v.id ? null : v.id)
 										}
 									>
-										{isCurrent && <span className="now-tag">지금</span>}
+										{isCurrent && <span className="now-tag">지금 복습중</span>}
 										{revealed && (
 											<span className="list-preview">
 												{v.title} — {opening(v.text, 20)}

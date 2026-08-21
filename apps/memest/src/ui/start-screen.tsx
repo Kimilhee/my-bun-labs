@@ -50,7 +50,7 @@ export function StartScreen({ data, dispatch, onSettings }: Props) {
 	return (
 		<div className="screen">
 			<div className="top">
-				<span className="app-title">memest</span>
+				<span className="app-title">Amsong</span>
 				<span className="spacer" />
 				<button
 					type="button"

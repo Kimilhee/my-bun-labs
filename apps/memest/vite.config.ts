@@ -13,8 +13,8 @@ export default defineConfig(({ mode }) => ({
 			registerType: 'autoUpdate',
 			includeAssets: ['icon.svg', 'apple-touch-icon.png'],
 			manifest: {
-				name: 'memest — 암송 복습',
-				short_name: 'memest',
+				name: 'Amsong — 암송 복습',
+				short_name: 'Amsong',
 				description: '성경 암송 복습 게임',
 				display: 'standalone',
 				background_color: '#111418',

@@ -141,7 +141,7 @@ body {
 	display: flex;
 	flex-direction: column;
 	align-items: flex-start;
-	gap: 2px;
+	gap: 8px; /* 대제목·중제목 사이를 띄운다 */
 	text-align: left;
 }
 
@@ -197,6 +197,13 @@ body {
 	text-decoration: underline;
 	text-decoration-color: #3a4757;
 	text-underline-offset: 3px;
+	cursor: pointer;
+}
+
+/* 대제목 › 중제목 구분자 — 양옆을 띄운다 */
+.hierarchy-sep {
+	margin: 0 8px;
+	color: #4a5566;
 }
 
 .text {
@@ -661,6 +668,26 @@ body {
 	padding: 10px 0;
 	border-bottom: 1px solid #161c25;
 	color: #e8eaed;
+}
+
+/* 체크박스 토글 영역 (우측 구절 수 버튼과 분리) */
+.scope-pick {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	min-width: 0;
+	cursor: pointer;
+}
+
+/* 구절 수 = 그 파트의 리스트를 여는 버튼 */
+.scope-count {
+	background: #263042;
+	border: none;
+	border-radius: 999px;
+	color: #9fb4d0;
+	font-size: 0.85rem;
+	padding: 5px 13px;
+	cursor: pointer;
 }
 
 .scope-warn {
