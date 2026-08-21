@@ -17,7 +17,7 @@ import {
 } from '../lib/speech'
 import type { AppData, Session } from '../lib/types'
 import { PartScopeSheet } from './part-scope-sheet'
-import { VerseListSheet } from './verse-list-sheet'
+import { type TitleScope, VerseListSheet } from './verse-list-sheet'
 
 // 첫머리 음성 확인 상태 (전체 암송 채점 아님 — ADR-16)
 type Voice =
@@ -36,6 +36,7 @@ type Props = {
 export function SessionScreen({ data, session, dispatch, onSettings }: Props) {
 	const [listOpen, setListOpen] = useState(false)
 	const [scopeOpen, setScopeOpen] = useState(false)
+	const [titleScope, setTitleScope] = useState<TitleScope | null>(null)
 	const [revealed, setRevealed] = useState(0) // 더블탭으로 연 어절 수
 	const [voice, setVoice] = useState<Voice>({ status: 'idle' })
 	const recRef = useRef<RecognizerHandle | null>(null)
@@ -339,8 +340,32 @@ export function SessionScreen({ data, session, dispatch, onSettings }: Props) {
 						onTouchCancel={onSwipeEnd}
 					>
 						<div className="hierarchy">
-							{verse.part}
-							{verse.midTitle ? ` › ${verse.midTitle}` : ''}
+							<button
+								type="button"
+								className="title-link"
+								onClick={() =>
+									setTitleScope({ part: verse.part, midTitle: null })
+								}
+							>
+								{verse.part}
+							</button>
+							{verse.midTitle && (
+								<>
+									{' › '}
+									<button
+										type="button"
+										className="title-link"
+										onClick={() =>
+											setTitleScope({
+												part: verse.part,
+												midTitle: verse.midTitle,
+											})
+										}
+									>
+										{verse.midTitle}
+									</button>
+								</>
+							)}
 						</div>
 						<div className="sub-title">
 							{verse.title}
@@ -409,6 +434,18 @@ export function SessionScreen({ data, session, dispatch, onSettings }: Props) {
 						setListOpen(false)
 					}}
 					onClose={() => setListOpen(false)}
+				/>
+			)}
+			{titleScope && (
+				<VerseListSheet
+					data={data}
+					session={session}
+					titleScope={titleScope}
+					onPick={(verseId, showAnswer) => {
+						dispatch({ type: 'redoVerse', verseId, showAnswer })
+						setTitleScope(null)
+					}}
+					onClose={() => setTitleScope(null)}
 				/>
 			)}
 			{scopeOpen && (
