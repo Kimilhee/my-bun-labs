@@ -712,7 +712,7 @@ body {
 	background: none;
 	border: none;
 	color: #8a94a3;
-	font-size: 1.05rem;
+	font-size: 0.8rem; /* ▶/▼는 채워진 글리프라 작아도 충분히 진하다 */
 	line-height: 1;
 	padding: 8px 0; /* 폭은 좁게, 세로로 손가락 크기를 확보 */
 	text-align: left;
