@@ -705,15 +705,16 @@ body {
 	color: #e8eaed;
 }
 
-/* ▸/▾ 펼침 버튼 — 중제목이 없는 파트에는 빈 span으로 자리만 맞춘다 */
+/* ▼/▶ 펼침 버튼 — 중제목이 없는 파트에는 빈 span으로 자리만 맞춘다 */
 .scope-caret {
 	flex: 0 0 auto;
-	width: 26px;
+	width: 18px;
 	background: none;
 	border: none;
-	color: #66738a;
-	font-size: 0.85rem;
-	padding: 6px 0;
+	color: #8a94a3;
+	font-size: 1.05rem;
+	line-height: 1;
+	padding: 8px 0; /* 폭은 좁게, 세로로 손가락 크기를 확보 */
 	text-align: left;
 	cursor: pointer;
 }
@@ -723,7 +724,7 @@ body {
 	background: #161c25;
 	font-size: 0.92rem;
 	color: #b9c3d1;
-	padding-left: 18px;
+	padding-left: 14px;
 }
 
 /* 체크박스 토글 영역 (우측 구절 수 버튼과 분리) */

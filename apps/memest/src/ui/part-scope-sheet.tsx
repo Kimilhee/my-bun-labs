@@ -141,7 +141,7 @@ export function PartScopeSheet({
 											onClick={() => toggleOpen(p.code)}
 											aria-label={`${p.part} 중제목 ${expanded ? '접기' : '펼치기'}`}
 										>
-											{expanded ? '▾' : '▸'}
+											{expanded ? '▼' : '▶'}
 										</button>
 									) : (
 										<span className="scope-caret" />
