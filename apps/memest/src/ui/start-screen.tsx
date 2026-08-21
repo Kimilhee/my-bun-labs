@@ -1,8 +1,7 @@
 import { useState } from 'react'
 import type { Action } from '../lib/app-state'
-import { dayAt, dayNumber, days } from '../lib/curriculum'
+import { dayAt, days, todayStr } from '../lib/curriculum'
 import { isStarred, verses } from '../lib/data'
-import { todayStr } from '../lib/scheduler'
 import { scopeLabel } from '../lib/session'
 import type { AppData } from '../lib/types'
 import { PartScopeSheet } from './part-scope-sheet'
@@ -22,8 +21,9 @@ type Props = {
 export function StartScreen({ data, dispatch, onEnter, onSettings }: Props) {
 	const [scopeOpen, setScopeOpen] = useState(false)
 
-	const today = dayAt(data.daily.cursor)
-	const dayNo = dayNumber(data.daily.cursor)
+	const today = dayAt(data.daily.order[0] ?? 0)
+	// 이번 바퀴에서 몇 번째인지 (남은 큐 길이로 역산)
+	const dayNo = days.length - data.daily.order.length + 1
 	const daily = data.sessions.daily
 	const drill = data.sessions.drill
 	const doneToday = data.daily.doneDate === todayStr() && !daily

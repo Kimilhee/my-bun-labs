@@ -183,7 +183,7 @@ export function SessionScreen({ data, session, dispatch, onSettings }: Props) {
 	const queuedSet = new Set(session.queue)
 	// 지나온 구절 리스트와 같은 공개 규칙: 이번 세션에 확인했거나, 이전에 다뤘고 대기 중 아님
 	const browseOpen = (vid: string) =>
-		doneNow.has(vid) || Boolean(data.progress[vid] && !queuedSet.has(vid))
+		doneNow.has(vid) || Boolean(data.seen[vid] && !queuedSet.has(vid))
 	const onTouchStart = (e: ReactTouchEvent) => {
 		const t = e.touches[0]
 		touchStart.current = t ? { x: t.clientX, y: t.clientY, locked: null } : null

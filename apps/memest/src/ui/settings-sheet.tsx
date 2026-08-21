@@ -38,7 +38,7 @@ export function SettingsSheet({
 	const doImport = () => {
 		try {
 			const parsed = JSON.parse(importText) as AppData
-			if (typeof parsed.progress !== 'object') throw new Error('bad format')
+			if (typeof parsed.settings !== 'object') throw new Error('bad format')
 			dispatch({
 				type: 'importData',
 				data: {
@@ -93,6 +93,31 @@ export function SettingsSheet({
 						남아요. 매일 복습은 진도를 따라 하루치씩(점수 없음), 하드 드릴은
 						고른 범위를 부채가 없어질 때까지(점수 있음).
 						{debtCount > 0 && ` — 남은 부채 ${debtCount}구절`}
+					</p>
+
+					<h3>매일 복습 순서</h3>
+					<div className="mode-pick order-pick">
+						{(
+							[
+								['forward', '순서대로'],
+								['backward', '거꾸로'],
+								['shuffle', '랜덤'],
+							] as const
+						).map(([o, label]) => (
+							<button
+								type="button"
+								key={o}
+								className={`btn ${data.settings.dailyOrder === o ? 'primary' : ''}`}
+								onClick={() => dispatch({ type: 'setDailyOrder', order: o })}
+							>
+								{label}
+							</button>
+						))}
+					</div>
+					<p className="note">
+						묶음과 그 안의 구절 차례에 함께 적용됩니다. 진행 중인 오늘 분량은
+						그대로 두고 <b>남은 묶음만</b> 다시 줄 세우니 언제 바꿔도 빠지거나
+						겹치는 구절이 없어요. (하드 드릴은 부채가 깊은 구절부터 그대로)
 					</p>
 
 					<button

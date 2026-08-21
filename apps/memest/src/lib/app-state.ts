@@ -1,4 +1,4 @@
-import { dayAt } from './curriculum'
+import { dayAt, fullLap, orderDays, ordered, todayStr } from './curriculum'
 import { mustVerse } from './data'
 import {
 	bumpStats,
@@ -8,21 +8,21 @@ import {
 	revealPenalty,
 	turnScore,
 } from './drill'
-import { grade, todayStr } from './scheduler'
 import { buildDrillQueue } from './session'
-import type { AppData, Session, SessionMode } from './types'
+import type { AppData, DailyOrder, Session, SessionMode } from './types'
 
 export const defaultData: AppData = {
-	progress: {},
+	seen: {},
 	drill: {},
 	stars: {},
 	stats: {},
 	settings: {
 		mode: 'daily',
+		dailyOrder: 'forward',
 		scopeParts: null,
 		listFull: true,
 	},
-	daily: { cursor: 0, doneDate: null },
+	daily: { order: fullLap(), doneDate: null },
 	sessions: { daily: null, drill: null },
 }
 
@@ -39,6 +39,7 @@ export type Action =
 	| { type: 'next'; wrong: boolean }
 	| { type: 'quitSession' } // 지금 모드의 세션을 버린다
 	| { type: 'setListFull'; on: boolean }
+	| { type: 'setDailyOrder'; order: DailyOrder }
 	| { type: 'redoVerse'; verseId: string; showAnswer?: boolean } // 지나온 구절을 다시 현재 카드로 (showAnswer면 전문부터)
 	| { type: 'importData'; data: AppData }
 	| { type: 'resetProgress' }
@@ -74,15 +75,22 @@ export function reduce(data: AppData, action: Action): AppData {
 	switch (action.type) {
 		case 'setMode':
 			return { ...data, settings: { ...data.settings, mode: action.mode } }
-		case 'startDaily':
+		case 'startDaily': {
+			// 오늘 분량 = 남은 큐의 맨 앞. 구절 차례도 같은 순서 설정을 따른다.
+			const today = dayAt(data.daily.order[0] ?? 0)
 			return {
 				...data,
 				settings: { ...data.settings, mode: 'daily' },
 				sessions: {
 					...data.sessions,
-					daily: newSession('daily', [...dayAt(data.daily.cursor).ids], null),
+					daily: newSession(
+						'daily',
+						ordered(today.ids, data.settings.dailyOrder),
+						null,
+					),
 				},
 			}
+		}
 		case 'startDrill': {
 			const queue = buildDrillQueue(action.scope, action.starredOnly, data)
 			return {
@@ -123,13 +131,8 @@ export function reduce(data: AppData, action: Action): AppData {
 			// peeked = 전문 공개 상태로 열린 브라우징 회차 — 채점·집계에서 전부 제외
 			const scored = !s.peeked
 			const counted = scored && !s.history.some((e) => e.verseId === id)
-			// box/due는 지금 어느 화면도 쓰지 않지만 기록은 계속 쌓아둔다
-			const progress = counted
-				? {
-						...data.progress,
-						[id]: grade(data.progress[id], s.hintsUsed, wrong, s.mode),
-					}
-				: data.progress
+			// 리스트의 "다뤄본 구절" 판정에만 쓰는 흔적
+			const seen = scored ? { ...data.seen, [id]: todayStr() } : data.seen
 			const stats = scored
 				? bumpStats(data.stats, id, s.hintsUsed, wrong)
 				: data.stats
@@ -166,12 +169,19 @@ export function reduce(data: AppData, action: Action): AppData {
 				...freshCard,
 				stage: queue.length === 0 ? 'done' : 'cue',
 			}
-			// 오늘 분량을 끝냈으면 진도를 한 칸 밀고 오늘 날짜를 찍는다 (내일 다음 묶음)
-			const daily =
-				s.mode === 'daily' && queue.length === 0
-					? { cursor: data.daily.cursor + 1, doneDate: todayStr() }
-					: data.daily
-			return { ...put(data, session), progress, drill, stats, daily }
+			// 오늘 분량을 끝냈으면 큐에서 빼고 오늘 날짜를 찍는다 (다음 묶음은 내일).
+			// 한 바퀴를 다 돌았으면 새 바퀴를 순서 설정대로 채운다.
+			let daily = data.daily
+			if (s.mode === 'daily' && queue.length === 0) {
+				const rest = data.daily.order.slice(1)
+				daily = {
+					order: rest.length
+						? rest
+						: orderDays(fullLap(), data.settings.dailyOrder),
+					doneDate: todayStr(),
+				}
+			}
+			return { ...put(data, session), seen, drill, stats, daily }
 		}
 		case 'quitSession':
 			return put(data, null)
@@ -179,6 +189,16 @@ export function reduce(data: AppData, action: Action): AppData {
 			return {
 				...data,
 				settings: { ...data.settings, listFull: action.on },
+			}
+		case 'setDailyOrder':
+			// 진행 중인 오늘 분량은 그대로 두고, 남은 묶음만 새 순서로 다시 세운다
+			return {
+				...data,
+				settings: { ...data.settings, dailyOrder: action.order },
+				daily: {
+					...data.daily,
+					order: orderDays(data.daily.order, action.order),
+				},
 			}
 		case 'redoVerse': {
 			if (!s || s.queue[0] === action.verseId) return data
@@ -197,10 +217,13 @@ export function reduce(data: AppData, action: Action): AppData {
 		case 'resetProgress':
 			return {
 				...data,
-				progress: {},
+				seen: {},
 				drill: {},
 				stats: {},
-				daily: { cursor: 0, doneDate: null },
+				daily: {
+					order: orderDays(fullLap(), data.settings.dailyOrder),
+					doneDate: null,
+				},
 				sessions: { daily: null, drill: null },
 			}
 	}

@@ -1,5 +1,5 @@
 import type { Action } from '../lib/app-state'
-import { dayAt, dayNumber } from '../lib/curriculum'
+import { dayAt, days } from '../lib/curriculum'
 import type { AppData, Session } from '../lib/types'
 
 type Props = {
@@ -27,8 +27,8 @@ export function SummaryScreen({ data, session, dispatch, onHome }: Props) {
 				</p>
 				{session.mode === 'daily' ? (
 					<p className="note">
-						다음 진도는 내일 — {dayNumber(data.daily.cursor)}일차{' '}
-						{dayAt(data.daily.cursor).title}
+						다음 진도는 내일 — {days.length - data.daily.order.length + 1}일차{' '}
+						{dayAt(data.daily.order[0] ?? 0).title}
 					</p>
 				) : (
 					<p className="note">부채가 남은 구절은 다음 드릴에서 다시 만나요.</p>

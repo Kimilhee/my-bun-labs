@@ -19,16 +19,6 @@ export type Part = {
 	count: number
 }
 
-/** C = 장절+제목 제시, D = 장절만 (목표 상태) */
-export type Level = 'C' | 'D'
-
-export type Progress = {
-	level: Level
-	box: number // Leitner 박스 0~5
-	due: string // YYYY-MM-DD
-	streak: number // 힌트 0개 연속 횟수 (C→D 승급용)
-}
-
 /** 두 모드는 완전히 별개의 세션으로, 서로의 진행 상태에 영향을 주지 않는다 */
 export type SessionMode = 'daily' | 'drill'
 
@@ -51,15 +41,22 @@ export type Session = {
 	revealedWords?: number // 더블탭으로 연 어절 수 (하드드릴 감점 대상)
 }
 
+/** 매일 복습에서 묶음·구절을 어떤 차례로 볼지 */
+export type DailyOrder = 'forward' | 'backward' | 'shuffle'
+
 export type Settings = {
 	mode: SessionMode // 지금 어느 모드에 있는지 (앱을 다시 열어도 유지)
+	dailyOrder: DailyOrder
 	scopeParts: string[] | null // 하드드릴에서 마지막으로 고른 범위 (null = 전체)
 	listFull: boolean // 구절 리스트 시트를 전체 높이로 열지 (반만 선택하면 기억)
 }
 
-/** 매일 복습의 진도 (curriculum.days의 인덱스) */
+/**
+ * 매일 복습의 진도. cursor(몇 번째)가 아니라 **이번 바퀴에 남은 묶음 큐**다 —
+ * 순서 설정을 도중에 바꿔도 남은 것만 다시 줄 세우면 되므로 중복도 누락도 없다.
+ */
 export type DailyProgress = {
-	cursor: number // 다음에 할 하루치
+	order: number[] // curriculum.days의 인덱스, order[0]이 오늘 분량
 	doneDate: string | null // 마지막으로 하루치를 끝낸 날 (오늘이면 오늘 분량 끝)
 }
 
@@ -70,7 +67,7 @@ export type Stats = {
 }
 
 export type AppData = {
-	progress: Record<string, Progress>
+	seen: Record<string, string> // verseId → 마지막으로 본 날 (리스트의 "다뤄본 구절" 판정)
 	drill: Record<string, number> // verseId → 부채 점수(음수). 갚으면 항목 삭제
 	stars: Record<string, boolean> // 수동 별표. 없으면 BTT 원본의 Verse.starred를 쓴다
 	stats: Record<string, Stats>

@@ -457,6 +457,10 @@ body {
 	gap: 8px;
 }
 
+.order-pick {
+	grid-template-columns: repeat(3, 1fr);
+}
+
 .row {
 	display: flex;
 	align-items: center;

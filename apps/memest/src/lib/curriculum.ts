@@ -1,4 +1,5 @@
 import { parts, verses } from './data'
+import type { DailyOrder } from './types'
 
 /**
  * 매일 복습의 진도표 — 목차 순서를 하루치로 잘라 놓은 고정 목록.
@@ -79,11 +80,37 @@ function build(): DayChunk[] {
 
 export const days: DayChunk[] = build()
 
-/** 진도 포인터를 진도표 범위 안으로 감는다 (끝나면 처음으로) */
-export const dayAt = (cursor: number): DayChunk => {
-	const i = ((cursor % days.length) + days.length) % days.length
-	return days[i] as DayChunk
+export const dayAt = (i: number): DayChunk =>
+	days[((i % days.length) + days.length) % days.length] as DayChunk
+
+/** 한 바퀴 전체 (진도표 인덱스 0..N-1) */
+export const fullLap = () => days.map((_, i) => i)
+
+/**
+ * 남은 묶음(진도표 인덱스)을 순서 설정대로 줄 세운다.
+ * 정순·역순은 **인덱스 기준 정렬**이라 이미 섞인 상태에서 바꿔도 제자리를 찾는다.
+ */
+export function orderDays(indices: number[], order: DailyOrder): number[] {
+	if (order === 'shuffle') return ordered(indices, 'shuffle')
+	const a = [...indices].sort((x, y) => x - y)
+	return order === 'backward' ? a.reverse() : a
 }
 
-export const dayNumber = (cursor: number) =>
-	(((cursor % days.length) + days.length) % days.length) + 1
+/** 목차 순서로 들어온 항목을 순서 설정대로 (하루치 안의 구절 차례) */
+export function ordered<T>(items: T[], order: DailyOrder): T[] {
+	const a = [...items]
+	if (order === 'backward') return a.reverse()
+	if (order === 'shuffle') {
+		for (let i = a.length - 1; i > 0; i--) {
+			const j = Math.floor(Math.random() * (i + 1))
+			;[a[i], a[j]] = [a[j] as T, a[i] as T]
+		}
+	}
+	return a
+}
+
+const iso = (d: Date) =>
+	`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+
+/** 오늘 날짜 (진도의 "오늘 분량 끝" 판정용) */
+export const todayStr = () => iso(new Date())

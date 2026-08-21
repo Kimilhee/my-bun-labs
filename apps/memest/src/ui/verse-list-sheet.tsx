@@ -213,7 +213,7 @@ export function VerseListSheet({
 							// (다뤄봤으면 전문부터 = 브라우징, 아니면 단서부터 = 암송)
 							const studied =
 								doneNow.has(v.id) ||
-								Boolean(data.progress[v.id] && !queued.has(v.id))
+								Boolean(data.seen[v.id] && !queued.has(v.id))
 							return (
 								<div key={v.id}>
 									{header && <div className="list-part-header">{header}</div>}
