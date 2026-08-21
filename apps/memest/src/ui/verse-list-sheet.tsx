@@ -14,6 +14,8 @@ type Props = {
 	titleScope?: TitleScope | null
 	/** showAnswer면 전문이 열린 정답 화면으로 (이미 복습한 구절의 장절 탭) */
 	onPick: (verseId: string, showAnswer: boolean) => void
+	/** 전체/반만 선택은 설정에 남아 다음에 열 때도 유지된다 */
+	onToggleFull: (full: boolean) => void
 	onClose: () => void
 }
 
@@ -27,9 +29,10 @@ export function VerseListSheet({
 	session,
 	titleScope,
 	onPick,
+	onToggleFull,
 	onClose,
 }: Props) {
-	const [full, setFull] = useState(false)
+	const full = data.settings.listFull
 	const [expandedId, setExpandedId] = useState<string | null>(null)
 
 	const scopeCodes = session.scopeCodes ?? data.settings.scopeParts
@@ -66,7 +69,7 @@ export function VerseListSheet({
 					<button
 						type="button"
 						className="icon-btn"
-						onClick={() => setFull(!full)}
+						onClick={() => onToggleFull(!full)}
 					>
 						{full ? '반만' : '전체'}
 					</button>
@@ -113,7 +116,7 @@ export function VerseListSheet({
 											</span>
 										)}
 									</button>
-									{revealed && (
+									{revealed && !titleScope && (
 										<button
 											type="button"
 											className="redo-btn"

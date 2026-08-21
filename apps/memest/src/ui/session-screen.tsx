@@ -433,6 +433,7 @@ export function SessionScreen({ data, session, dispatch, onSettings }: Props) {
 						dispatch({ type: 'redoVerse', verseId, showAnswer })
 						setListOpen(false)
 					}}
+					onToggleFull={(on) => dispatch({ type: 'setListFull', on })}
 					onClose={() => setListOpen(false)}
 				/>
 			)}
@@ -445,6 +446,7 @@ export function SessionScreen({ data, session, dispatch, onSettings }: Props) {
 						dispatch({ type: 'redoVerse', verseId, showAnswer })
 						setTitleScope(null)
 					}}
+					onToggleFull={(on) => dispatch({ type: 'setListFull', on })}
 					onClose={() => setTitleScope(null)}
 				/>
 			)}

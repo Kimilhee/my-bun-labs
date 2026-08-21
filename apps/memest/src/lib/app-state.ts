@@ -13,7 +13,12 @@ export const defaultData: AppData = {
 	progress: {},
 	drill: {},
 	stats: {},
-	settings: { dailySize: 20, scopeParts: null, hardDrill: false },
+	settings: {
+		dailySize: 20,
+		scopeParts: null,
+		hardDrill: false,
+		listFull: true,
+	},
 	session: null,
 }
 
@@ -33,6 +38,7 @@ export type Action =
 	| { type: 'quitSession' }
 	| { type: 'setDailySize'; size: number }
 	| { type: 'setHardDrill'; on: boolean }
+	| { type: 'setListFull'; on: boolean }
 	| { type: 'setScopeParts'; codes: string[] | null }
 	| { type: 'redoVerse'; verseId: string; showAnswer?: boolean } // 지나온 구절을 다시 현재 카드로 (showAnswer면 전문부터)
 	| { type: 'importData'; data: AppData }
@@ -157,6 +163,11 @@ export function reduce(data: AppData, action: Action): AppData {
 			return {
 				...data,
 				settings: { ...data.settings, hardDrill: action.on },
+			}
+		case 'setListFull':
+			return {
+				...data,
+				settings: { ...data.settings, listFull: action.on },
 			}
 		case 'redoVerse': {
 			if (!s || s.queue[0] === action.verseId) return data

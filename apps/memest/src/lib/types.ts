@@ -53,6 +53,7 @@ export type Settings = {
 	dailySize: number
 	scopeParts: string[] | null // 복습 범위 파트 코드 목록 (null = 전체)
 	hardDrill: boolean // 하드드릴: 부채가 0 이상이 될 때까지 세션 안에서 재등장
+	listFull: boolean // 구절 리스트 시트를 전체 높이로 열지 (반만 선택하면 기억)
 }
 
 /** 누적 기록 (정렬·통계용, 모드 무관). 스케줄러 입력이 아니다. */
