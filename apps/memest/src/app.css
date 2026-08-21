@@ -145,7 +145,7 @@ body {
 }
 
 .star-on {
-	font-size: 1.4rem;
+	font-size: 0.8rem;
 	vertical-align: middle;
 }
 
@@ -167,12 +167,13 @@ body {
 	text-align: left;
 }
 
-.cue-big {
+/* 뒤에 오는 .title-link의 color/font inherit에 덮이지 않게 특정성을 한 단계 올린다 */
+.cue-titles .cue-big {
 	color: #66738a;
 	font-size: 0.78rem;
 }
 
-.cue-mid {
+.cue-titles .cue-mid {
 	color: #8a94a3;
 	font-size: 0.9rem;
 }
