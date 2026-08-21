@@ -118,10 +118,12 @@ export function SessionScreen({ data, session, dispatch, onSettings }: Props) {
 	const remaining = total - doneCount - 1
 	// 하드드릴: 이 카드에 남은 부채 (0 이상이면 표시 안 함)
 	const debt = data.settings.hardDrill ? (data.drill[id] ?? 0) : 0
-	// 정답 화면 하단 기호: 총 틀린 횟수(모드 무관 누적)와 남은 부채
+	// 정답 화면 하단 기호: ⊗ 총 틀린 횟수(모드 무관 누적) · ⊖ 남은 부채 · ⟳ 졸업까지 무결점 횟수
+	const wrongCount = data.stats[id]?.wrong ?? 0
 	const marks = [
-		data.stats[id]?.wrong ? `✗ ${data.stats[id]?.wrong}` : null,
-		debt < 0 ? `${debt}` : null,
+		wrongCount ? `⊗ ${wrongCount}` : null,
+		debt < 0 ? `⊖ ${-debt}` : null,
+		debt < 0 ? `⟳ ${Math.ceil(-debt / 10)}` : null,
 	]
 		.filter(Boolean)
 		.join(' · ')
