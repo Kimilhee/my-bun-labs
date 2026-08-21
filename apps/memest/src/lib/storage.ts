@@ -11,6 +11,7 @@ export function loadData(): AppData {
 		return {
 			progress: parsed.progress ?? {},
 			drill: parsed.drill ?? {},
+			stars: parsed.stars ?? {},
 			stats: parsed.stats ?? {},
 			settings: { ...defaultData.settings, ...parsed.settings },
 			session: parsed.session ?? null,

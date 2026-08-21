@@ -1,8 +1,10 @@
+import { mustVerse } from './data'
 import {
 	bumpStats,
 	DRILL_FLOOR,
 	insertAt,
 	requeueGap,
+	revealPenalty,
 	turnScore,
 } from './drill'
 import { grade } from './scheduler'
@@ -12,6 +14,7 @@ import type { AppData, Session } from './types'
 export const defaultData: AppData = {
 	progress: {},
 	drill: {},
+	stars: {},
 	stats: {},
 	settings: {
 		dailySize: 20,
@@ -31,6 +34,8 @@ export type Action =
 			cap: number
 	  }
 	| { type: 'hint' }
+	| { type: 'revealWord' } // 더블탭으로 다음 어절 열기 (하드드릴 감점)
+	| { type: 'toggleStar'; verseId: string }
 	| { type: 'recalled' } // 떠올랐다 → 정답 확인으로
 	| { type: 'reveal' } // 힌트 다 쓰고 정답 보기
 	| { type: 'backToCue' } // 정답 확인 화면에서 다시 시도로 복귀 (정답 안 봤을 때만 UI 노출)
@@ -49,6 +54,7 @@ const freshCard = {
 	hintsUsed: 0,
 	revealed: false,
 	peeked: false,
+	revealedWords: 0,
 }
 
 function newSession(
@@ -77,6 +83,7 @@ export function reduce(data: AppData, action: Action): AppData {
 						action.codes,
 						action.starredOnly,
 						action.cap,
+						data.stars,
 						data.settings.hardDrill ? data.drill : undefined,
 					),
 					action.codes,
@@ -86,6 +93,23 @@ export function reduce(data: AppData, action: Action): AppData {
 			return s
 				? { ...data, session: { ...s, hintsUsed: s.hintsUsed + 1 } }
 				: data
+		case 'revealWord':
+			return s
+				? {
+						...data,
+						session: { ...s, revealedWords: (s.revealedWords ?? 0) + 1 },
+					}
+				: data
+		case 'toggleStar': {
+			const v = mustVerse(action.verseId)
+			return {
+				...data,
+				stars: {
+					...data.stars,
+					[action.verseId]: !(data.stars[action.verseId] ?? v.starred),
+				},
+			}
+		}
 		case 'recalled':
 			return s
 				? { ...data, session: { ...s, stage: 'answer', revealed: false } }
@@ -120,9 +144,12 @@ export function reduce(data: AppData, action: Action): AppData {
 			let queue = rest
 			if (data.settings.hardDrill && scored) {
 				// 부채가 깊을수록 가까이 되돌아오고, 0 이상이 되면 졸업(항목 삭제)
+				// 힌트 감점 + 더블탭으로 열어본 어절 감점
 				const score = Math.max(
 					DRILL_FLOOR,
-					(data.drill[id] ?? 0) + turnScore(s.hintsUsed, wrong),
+					(data.drill[id] ?? 0) +
+						turnScore(s.hintsUsed, wrong) +
+						revealPenalty(s.revealedWords ?? 0),
 				)
 				drill = { ...data.drill }
 				if (score >= 0) delete drill[id]

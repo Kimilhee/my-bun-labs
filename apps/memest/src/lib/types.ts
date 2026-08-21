@@ -47,6 +47,7 @@ export type Session = {
 	hintsUsed: number
 	revealed: boolean
 	peeked?: boolean // 현재 카드가 전문 공개 상태로 열림 (브라우징) — 채점 제외
+	revealedWords?: number // 더블탭으로 연 어절 수 (하드드릴 감점 대상)
 }
 
 export type Settings = {
@@ -65,6 +66,7 @@ export type Stats = {
 export type AppData = {
 	progress: Record<string, Progress>
 	drill: Record<string, number> // verseId → 부채 점수(음수). 갚으면 항목 삭제
+	stars: Record<string, boolean> // 수동 별표. 없으면 BTT 원본의 Verse.starred를 쓴다
 	stats: Record<string, Stats>
 	settings: Settings
 	session: Session | null

@@ -34,6 +34,7 @@ export function SettingsSheet({ data, dispatch, onClose }: Props) {
 				data: {
 					...parsed,
 					drill: parsed.drill ?? {},
+					stars: parsed.stars ?? {},
 					stats: parsed.stats ?? {},
 					session: parsed.session ?? null,
 				},

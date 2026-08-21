@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { Action } from '../lib/app-state'
-import { parts, verses } from '../lib/data'
+import { isStarred, parts, verses } from '../lib/data'
 import { todayStr } from '../lib/scheduler'
 import { buildIntensiveQueue, inScope } from '../lib/session'
 import type { AppData } from '../lib/types'
@@ -26,7 +26,7 @@ export function StartScreen({ data, dispatch, onSettings }: Props) {
 		(v) => (data.progress[v.id]?.due ?? '9999') <= today && data.progress[v.id],
 	).length
 	const unseenCount = scoped.filter((v) => !data.progress[v.id]).length
-	const starredCount = verses.filter((v) => v.starred).length
+	const starredCount = verses.filter((v) => isStarred(data.stars, v)).length
 	const scopeLabel =
 		scope === null
 			? '전체'
@@ -39,6 +39,7 @@ export function StartScreen({ data, dispatch, onSettings }: Props) {
 		codes,
 		starredOnly,
 		Number.POSITIVE_INFINITY,
+		data.stars,
 	).length
 	const cap = Number.parseInt(capInput, 10) || matched
 

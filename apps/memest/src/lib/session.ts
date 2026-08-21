@@ -1,4 +1,4 @@
-import { verses } from './data'
+import { isStarred, verses } from './data'
 import { todayStr } from './scheduler'
 import type { AppData } from './types'
 
@@ -28,13 +28,14 @@ export function buildIntensiveQueue(
 	codes: string[],
 	starredOnly: boolean,
 	cap: number,
+	stars: AppData['stars'],
 	drill?: Record<string, number>,
 ): string[] {
 	const ids = verses
 		.filter(
 			(v) =>
 				codes.some((c) => v.id.startsWith(`${c}-`)) &&
-				(!starredOnly || v.starred),
+				(!starredOnly || isStarred(stars, v)),
 		)
 		.map((v) => v.id)
 	if (drill) ids.sort((a, b) => (drill[a] ?? 0) - (drill[b] ?? 0))

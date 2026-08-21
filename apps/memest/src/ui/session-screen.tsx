@@ -6,7 +6,7 @@ import {
 	useState,
 } from 'react'
 import type { Action } from '../lib/app-state'
-import { mustVerse, parts, verses } from '../lib/data'
+import { isStarred, mustVerse, parts, verses } from '../lib/data'
 import { hintLayers } from '../lib/hints'
 import { firstPhraseMatch, followWords } from '../lib/match'
 import { inScope } from '../lib/session'
@@ -63,7 +63,6 @@ export function SessionScreen({ data, session, dispatch, onSettings }: Props) {
 	const [listOpen, setListOpen] = useState(false)
 	const [scopeOpen, setScopeOpen] = useState(false)
 	const [titleScope, setTitleScope] = useState<TitleScope | null>(null)
-	const [revealed, setRevealed] = useState(0) // 더블탭으로 연 어절 수
 	const [voice, setVoice] = useState<Voice>({ status: 'idle' })
 	const recRef = useRef<RecognizerHandle | null>(null)
 	const touchStart = useRef<{
@@ -76,10 +75,10 @@ export function SessionScreen({ data, session, dispatch, onSettings }: Props) {
 	const id = session.queue[0]
 	const encounterKey = `${id}:${session.history.length}`
 
-	// 카드가 바뀌면 (재큐잉으로 같은 카드가 다시 와도) 열린 어절·음성 상태 초기화
+	// 카드가 바뀌면 (재큐잉으로 같은 카드가 다시 와도) 음성 상태 초기화
+	// (열린 어절 수는 세션 상태라 리듀서의 freshCard가 되돌린다)
 	// biome-ignore lint/correctness/useExhaustiveDependencies: encounterKey가 카드 전환 신호
 	useEffect(() => {
-		setRevealed(0)
 		setVoice({ status: 'idle' })
 		recRef.current?.cancel()
 		recRef.current = null
@@ -121,9 +120,13 @@ export function SessionScreen({ data, session, dispatch, onSettings }: Props) {
 	const debt = data.settings.hardDrill ? (data.drill[id] ?? 0) : 0
 
 	const words = followWords(verse.text)
+	// 더블탭으로 연 어절 수 — 세션 상태에 두어야 하드드릴 감점(-3/어절)에 반영된다
+	const revealed = session.revealedWords ?? 0
 	const revealEnd =
 		revealed > 0 ? (words[Math.min(revealed, words.length) - 1]?.end ?? 0) : 0
-	const revealOne = () => setRevealed((n) => Math.min(n + 1, words.length))
+	const revealOne = () => {
+		if (revealed < words.length) dispatch({ type: 'revealWord' })
+	}
 
 	const canSpeak = speechSupported()
 	const startVoice = () => {
@@ -414,11 +417,21 @@ export function SessionScreen({ data, session, dispatch, onSettings }: Props) {
 								</>
 							)}
 						</div>
-						<div className="sub-title">
-							{verse.title}
-							{verse.starred && ' ⭐'}
-						</div>
-						<div className="ref">{verse.ref}</div>
+						<div className="sub-title">{verse.title}</div>
+						{/* 장절 더블탭 = 별표 토글 (제스처라 키보드 대응 대상이 아니다) */}
+						<button
+							type="button"
+							className="ref ref-star"
+							aria-label="장절 — 두 번 터치하면 별표"
+							onDoubleClick={() =>
+								dispatch({ type: 'toggleStar', verseId: id })
+							}
+						>
+							{verse.ref}
+							{isStarred(data.stars, verse) && (
+								<span className="star-on"> ⭐</span>
+							)}
+						</button>
 						<p className="text">{verse.text}</p>
 						{verse.note && <p className="note">메모: {verse.note}</p>}
 						{session.revealed && (

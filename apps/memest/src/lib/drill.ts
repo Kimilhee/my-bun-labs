@@ -21,6 +21,14 @@ export function turnScore(hints: number, wrong: boolean): number {
 	return CORRECT[Math.min(hints, CORRECT.length - 1)] ?? -7
 }
 
+/** 더블탭으로 어절 하나를 열어보는 비용 (첫머리 커닝도 공짜가 아니다) */
+export const REVEAL_COST = -3
+
+/** 이번 회차에 연 어절 수만큼의 감점 */
+export function revealPenalty(revealedWords: number): number {
+	return REVEAL_COST * revealedWords
+}
+
 /** 부채가 깊을수록 짧은 간격으로 되돌아온다 (부채가 줄면 간격이 벌어짐) */
 export function requeueGap(score: number): number {
 	if (score <= -20) return 1
