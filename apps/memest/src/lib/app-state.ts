@@ -24,6 +24,7 @@ export const defaultData: AppData = {
 	},
 	daily: { order: fullLap(), doneDate: null },
 	sessions: { daily: null, drill: null },
+	pairBest: {},
 }
 
 export type Action =
@@ -41,6 +42,7 @@ export type Action =
 	| { type: 'setListFull'; on: boolean }
 	| { type: 'setReviewOrder'; order: ReviewOrder }
 	| { type: 'redoVerse'; verseId: string; showAnswer?: boolean } // 지나온 구절을 다시 현재 카드로 (showAnswer면 전문부터)
+	| { type: 'pairResult'; pool: string; score: number; stage: number } // 짝 맞추기 기록 갱신
 	| { type: 'importData'; data: AppData }
 	| { type: 'resetProgress' }
 
@@ -211,6 +213,20 @@ export function reduce(data: AppData, action: Action): AppData {
 				stage: action.showAnswer ? 'answer' : 'cue',
 				peeked: Boolean(action.showAnswer),
 			})
+		}
+		case 'pairResult': {
+			const prev = data.pairBest[action.pool]
+			// 점수와 스테이지는 각각 최고치를 남긴다 (콤보로 점수만 높은 판도 있다)
+			return {
+				...data,
+				pairBest: {
+					...data.pairBest,
+					[action.pool]: {
+						score: Math.max(prev?.score ?? 0, action.score),
+						stage: Math.max(prev?.stage ?? 0, action.stage),
+					},
+				},
+			}
 		}
 		case 'importData':
 			return action.data

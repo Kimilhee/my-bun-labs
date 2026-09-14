@@ -44,6 +44,7 @@ export function loadData(): AppData {
 				daily: sessions.daily ?? null,
 				drill: sessions.drill ?? null,
 			},
+			pairBest: parsed.pairBest ?? {},
 		}
 	} catch {
 		return defaultData

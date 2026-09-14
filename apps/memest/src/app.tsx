@@ -1,6 +1,8 @@
 import { useEffect, useReducer, useState } from 'react'
 import { reduce } from './lib/app-state'
+import type { PairPool } from './lib/pair-game'
 import { loadData, saveData } from './lib/storage'
+import { PairGameScreen } from './ui/pair-game-screen'
 import { SessionScreen } from './ui/session-screen'
 import { SettingsSheet } from './ui/settings-sheet'
 import { StartScreen } from './ui/start-screen'
@@ -11,11 +13,24 @@ export function App() {
 	const [settingsOpen, setSettingsOpen] = useState(false)
 	// 세션을 버리지 않고 홈으로 나와 있는 상태 (모드 전환·[홈으로])
 	const [atHome, setAtHome] = useState(false)
+	// 짝 맞추기 게임은 세션 바깥의 화면 — 켜져 있으면 모든 것 위에 온다
+	const [pair, setPair] = useState<PairPool | null>(null)
 	useEffect(() => saveData(data), [data])
 
 	const s = data.sessions[data.settings.mode]
 	const openSettings = () => setSettingsOpen(true)
 	const show = atHome ? null : s
+	if (pair)
+		return (
+			<div className="app">
+				<PairGameScreen
+					data={data}
+					pool={pair}
+					dispatch={dispatch}
+					onHome={() => setPair(null)}
+				/>
+			</div>
+		)
 	return (
 		<div className="app">
 			{!show && (
@@ -23,6 +38,7 @@ export function App() {
 					data={data}
 					dispatch={dispatch}
 					onEnter={() => setAtHome(false)}
+					onPair={setPair}
 					onSettings={openSettings}
 				/>
 			)}

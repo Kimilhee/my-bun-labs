@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { Action } from '../lib/app-state'
 import { dayAt, days, todayStr } from '../lib/curriculum'
 import { isStarred, verses } from '../lib/data'
+import { type PairPool, poolLabel, poolVerses } from '../lib/pair-game'
 import { scopeLabel } from '../lib/session'
 import type { AppData } from '../lib/types'
 import { PartScopeSheet } from './part-scope-sheet'
@@ -11,6 +12,8 @@ type Props = {
 	dispatch: (a: Action) => void
 	/** 세션으로 들어간다 (홈에 나와 있던 상태를 푼다) */
 	onEnter: () => void
+	/** 짝 맞추기 게임 시작 (세션과 무관한 별도 화면) */
+	onPair: (pool: PairPool) => void
 	onSettings: () => void
 }
 
@@ -18,7 +21,13 @@ type Props = {
  * 홈. 두 모드의 입구다 — 진도를 따라가는 [매일 복습]과, 범위를 직접 골라
  * 부채가 없어질 때까지 파는 [하드 드릴]. 두 세션은 서로 독립이라 오가도 각자 남는다.
  */
-export function StartScreen({ data, dispatch, onEnter, onSettings }: Props) {
+export function StartScreen({
+	data,
+	dispatch,
+	onEnter,
+	onPair,
+	onSettings,
+}: Props) {
 	const [scopeOpen, setScopeOpen] = useState(false)
 
 	const today = dayAt(data.daily.order[0] ?? 0)
@@ -31,6 +40,14 @@ export function StartScreen({ data, dispatch, onEnter, onSettings }: Props) {
 	const starredCount = verses.filter((v) => isStarred(data.stars, v)).length
 	const debtCount = Object.keys(data.drill).length
 	const left = (s: typeof daily) => (s ? new Set(s.queue).size : 0)
+	// 세 풀 중 최고 점수 하나만 카드 머리에 보여준다
+	const bestOf = (pools: PairPool[]) => {
+		const top = pools
+			.map((p) => data.pairBest[p])
+			.filter((r) => r !== undefined)
+			.sort((a, b) => b.score - a.score)[0]
+		return top ? `최고 ${top.score.toLocaleString()}점` : null
+	}
 
 	return (
 		<div className="screen">
@@ -113,6 +130,36 @@ export function StartScreen({ data, dispatch, onEnter, onSettings }: Props) {
 					>
 						{drill ? '범위 새로 고르기…' : '범위 고르기…'}
 					</button>
+				</div>
+
+				<div className="mode-card">
+					<div className="mode-head">
+						<b>짝 맞추기</b>
+						<span className="note">
+							{bestOf(['today', 'starred', 'all']) ?? '기록 없음'}
+						</span>
+					</div>
+					<div className="mode-title">
+						장절과 첫 소절을 짝지어 지우는 워밍업 게임. 점수·콤보만 있고 부채는
+						쌓이지 않는다.
+					</div>
+					<div className="pool-pick">
+						{(['today', 'starred', 'all'] as PairPool[]).map((p) => {
+							const n = poolVerses(p, data).length
+							return (
+								<button
+									key={p}
+									type="button"
+									className="btn"
+									disabled={n < 2}
+									onClick={() => onPair(p)}
+								>
+									{poolLabel[p]}
+									<span className="note"> {n}</span>
+								</button>
+							)
+						})}
+					</div>
 				</div>
 
 				<p className="note home-foot">

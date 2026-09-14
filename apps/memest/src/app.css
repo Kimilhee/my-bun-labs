@@ -749,3 +749,137 @@ body {
 	padding-bottom: max(16px, env(safe-area-inset-bottom));
 	border-top: 1px solid #242e3d;
 }
+
+/* ── 짝 맞추기 게임 ── */
+.pool-pick {
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	gap: 8px;
+}
+
+.pool-pick .btn {
+	padding: 13px 6px;
+	font-size: 0.95rem;
+}
+
+.pair-stats {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 12px;
+	padding: 0 18px;
+	color: #9fb4d0;
+	font-size: 0.9rem;
+}
+
+.pair-stats b {
+	color: #e8eaed;
+	font-variant-numeric: tabular-nums;
+}
+
+.combo {
+	color: #66738a;
+	text-align: right;
+}
+
+.combo.hot {
+	color: #d9a54a;
+	font-weight: 700;
+	animation: pop 0.25s ease-out;
+}
+
+/* 맞춘 짝의 장절·제목이 잠깐 떠오르는 줄 (게임의 학습 보상) */
+.pair-flash {
+	min-height: 1.5rem;
+	padding: 6px 16px 0;
+	text-align: center;
+	color: #7ee0a8;
+	font-size: 0.92rem;
+	word-break: keep-all;
+}
+
+/* 남는 높이를 2열 × 짝 수만큼의 행이 균등하게 채운다 (스크롤 없음) */
+.pair-board {
+	flex: 1;
+	min-height: 0;
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	grid-auto-rows: 1fr;
+	gap: 10px;
+	padding: 10px 16px 4px;
+}
+
+.tile {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border: none;
+	border-radius: 14px;
+	background: #263042;
+	color: #e8eaed;
+	padding: 6px 10px;
+	font-size: 0.95rem;
+	line-height: 1.35;
+	text-align: center;
+	word-break: keep-all;
+	cursor: pointer;
+	user-select: none;
+	-webkit-user-select: none;
+	animation: deal 0.28s ease-out both;
+}
+
+.tile.t-ref {
+	background: #22314a;
+	color: #cfe0ff;
+	font-size: 1.2rem;
+	font-weight: 700;
+	font-variant-numeric: tabular-nums;
+}
+
+.tile.picked {
+	background: #2f6fed;
+	color: #fff;
+}
+
+.tile.wrong {
+	background: #8a2e2e;
+	color: #fff;
+	animation: shake 0.4s ease-in-out;
+}
+
+/* 맞은 짝은 사라지지만 자리는 남는다 (상하이처럼 판이 흔들리지 않게) */
+.tile.gone {
+	pointer-events: none;
+	animation: vanish 0.35s ease-out forwards;
+}
+
+@keyframes deal {
+	from {
+		opacity: 0;
+		transform: translateY(14px) scale(0.92);
+	}
+}
+
+@keyframes shake {
+	25% {
+		transform: translateX(-6px);
+	}
+	50% {
+		transform: translateX(6px);
+	}
+	75% {
+		transform: translateX(-4px);
+	}
+}
+
+@keyframes vanish {
+	to {
+		opacity: 0;
+		transform: scale(0.55) rotate(8deg);
+	}
+}
+
+.pair-foot {
+	padding: 8px 16px max(14px, env(safe-area-inset-bottom));
+	text-align: center;
+}

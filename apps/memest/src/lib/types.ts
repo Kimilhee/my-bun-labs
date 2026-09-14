@@ -66,6 +66,9 @@ export type Stats = {
 	hints: number
 }
 
+/** 짝 맞추기 게임의 기록 (풀별 최고 점수). 암송 채점과는 무관하다 */
+export type PairRecord = { score: number; stage: number }
+
 export type AppData = {
 	seen: Record<string, string> // verseId → 마지막으로 본 날 (리스트의 "다뤄본 구절" 판정)
 	drill: Record<string, number> // verseId → 부채 점수(음수). 갚으면 항목 삭제
@@ -75,4 +78,6 @@ export type AppData = {
 	daily: DailyProgress
 	/** 모드별로 따로 보관 — 오가도 각자의 진행이 그대로 남는다 */
 	sessions: { daily: Session | null; drill: Session | null }
+	/** 짝 맞추기 최고 기록 (풀 이름 → 기록). 세션이 아니라 기록만 남는다 */
+	pairBest: Record<string, PairRecord>
 }
