@@ -22,13 +22,12 @@ type Props = {
 
 type Side = 'ref' | 'head'
 
-/** 맞춘 짝의 공개 연출: 합쳐진 카드 → 뒤집혀 제목 → (회색이었으면) 두 장으로 분리 */
+/** 맞춘 짝 공개: 장절·제목만 중앙에 띄운다. 회색 카드였으면 각인 단계로 이어진다 */
 type Reveal = {
 	ref: string
 	head: string
 	title: string
 	again: number | null // 남은 부채 (덱으로 되돌아가는 카드), 졸업했으면 null
-	confirm: boolean // 각인 단계(두 장 탭)가 뒤따르는지
 }
 
 /**
@@ -49,10 +48,8 @@ export function PairGameScreen({ data, game, dispatch, onHome }: Props) {
 			head: headPhrase(v.text),
 			title: v.title,
 			again: left < 0 ? left : null,
-			confirm: true,
 		}
 	})
-	const [flipped, setFlipped] = useState(true)
 	const [split, setSplit] = useState(() => game.review !== null)
 	// 연출이 겹칠 때 앞의 타이머가 새 연출을 지우지 않도록 하는 세대 번호
 	const seq = useRef(0)
@@ -114,7 +111,7 @@ export function PairGameScreen({ data, game, dispatch, onHome }: Props) {
 			return
 		}
 
-		// 맞췄다 — 합쳐진 카드를 띄우고 잠시 뒤 뒤집어 제목을 보여준다
+		// 맞췄다 — 장절과 제목을 중앙에 띄운다 (회색 카드였으면 곧바로 각인 단계)
 		const v = mustVerse(refId)
 		const rest = afterMatch(game, refId)
 		const confirm = isStale(game, refId)
@@ -123,21 +120,11 @@ export function PairGameScreen({ data, game, dispatch, onHome }: Props) {
 			head: headPhrase(v.text),
 			title: v.title,
 			again: rest >= 0 ? null : rest,
-			confirm,
 		})
-		setFlipped(false)
-		setSplit(false)
+		setSplit(confirm)
 		const gen = ++seq.current
-		const alive = () => seq.current === gen
-		later(() => alive() && setFlipped(true), 600)
-		if (confirm) {
-			// 각인 단계: 두 장으로 갈라지고 장절·첫 소절을 읽어준다
-			later(() => {
-				if (!alive()) return
-				setSplit(true)
-				speak(`${spokenRef(v.ref)}. ${headPhrase(v.text)}`)
-			}, 1700)
-		} else later(() => alive() && setReveal(null), 1900)
+		if (confirm) speak(`${spokenRef(v.ref)}. ${headPhrase(v.text)}`)
+		else later(() => seq.current === gen && setReveal(null), 1500)
 		dispatch({ type: 'pairTry', refId, headId })
 	}
 
@@ -236,25 +223,19 @@ export function PairGameScreen({ data, game, dispatch, onHome }: Props) {
 			{reveal && (
 				<div className={`reveal-stage ${split ? 'split' : ''}`}>
 					{!split && (
-						/* 두 타일이 하나로 합쳐진 카드 — 뒤집히면 제목이 나온다 */
-						<div className={`merge-card ${flipped ? 'flipped' : ''}`}>
-							<div className="merge-face merge-front">
-								<div className="merge-ref">{reveal.ref}</div>
-								<div className="merge-head">{reveal.head}</div>
-							</div>
-							<div className="merge-face merge-back">
-								<div className="merge-title">{reveal.title}</div>
-								{reveal.again !== null && (
-									<div className="merge-again">
-										한 번 더 나옵니다 ({reveal.again})
-									</div>
-								)}
-							</div>
-						</div>
+						<>
+							<div className="reveal-ref">{reveal.ref}</div>
+							<div className="reveal-title">{reveal.title}</div>
+							{reveal.again !== null && (
+								<div className="reveal-again">
+									한 번 더 나옵니다 ({reveal.again})
+								</div>
+							)}
+						</>
 					)}
 					{split && rv && (
 						<>
-							<div className="merge-title">{reveal.title}</div>
+							<div className="reveal-title">{reveal.title}</div>
 							<p className="note">두 카드를 눌러 각인하고 지우기</p>
 							<button
 								type="button"
@@ -271,7 +252,7 @@ export function PairGameScreen({ data, game, dispatch, onHome }: Props) {
 								{reveal.head}
 							</button>
 							{reveal.again !== null && (
-								<p className="merge-again">
+								<p className="reveal-again">
 									한 번 더 나옵니다 ({reveal.again})
 								</p>
 							)}

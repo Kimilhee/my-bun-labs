@@ -891,9 +891,9 @@ body {
 	text-align: center;
 }
 
-/* ── 맞춘 짝 공개 연출 ──
-   두 타일이 하나로 합쳐진 카드가 중앙에 뜨고, 뒤집히면 제목이 나온다.
-   회색 카드였으면 두 장으로 갈라져 각각 눌러 각인한다 (그때만 입력을 잡는다). */
+/* ── 맞춘 짝 공개 ──
+   카드 없이 장절·제목 글자만 중앙에 떴다 사라진다. 회색 카드였으면
+   그 자리에서 각인 단계(두 장 탭)로 이어지고, 그때만 입력을 잡는다. */
 .reveal-stage {
 	position: fixed;
 	inset: 0;
@@ -902,10 +902,17 @@ body {
 	flex-direction: column;
 	align-items: center;
 	justify-content: center;
-	gap: 14px;
+	gap: 12px;
 	padding: 24px;
-	pointer-events: none; /* 합쳐진 카드가 떠 있는 동안에도 다음 짝을 누를 수 있다 */
-	perspective: 1200px;
+	pointer-events: none; /* 글자가 떠 있는 동안에도 다음 짝을 누를 수 있다 */
+	animation: fade-in 0.15s ease-out;
+	/* 카드(테두리) 없이 글자 뒤만 어둡게 — 아래 타일 글자와 겹쳐도 읽힌다 */
+	background: radial-gradient(
+		ellipse 62% 26% at center,
+		rgba(5, 7, 10, 0.94) 0%,
+		rgba(5, 7, 10, 0.8) 45%,
+		rgba(5, 7, 10, 0) 72%
+	);
 }
 
 .reveal-stage.split {
@@ -914,76 +921,34 @@ body {
 	animation: fade-in 0.2s ease-out;
 }
 
-.merge-card {
-	position: relative;
-	width: min(80vw, 380px);
-	height: 176px;
-	transform-style: preserve-3d;
-	transition: transform 0.5s ease-in-out;
-	animation: merge-in 0.28s ease-out;
-}
-
-.merge-card.flipped {
-	transform: rotateY(180deg);
-}
-
-.merge-face {
-	position: absolute;
-	inset: 0;
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	justify-content: center;
-	gap: 12px;
-	padding: 20px 22px;
-	border-radius: 20px;
-	box-shadow: 0 18px 44px rgba(0, 0, 0, 0.55);
-	backface-visibility: hidden;
-	-webkit-backface-visibility: hidden;
-}
-
-.merge-front {
-	background: #0f1a14;
-	border: 1px solid #2f6a4e;
-}
-
-.merge-back {
-	background: #101a2c;
-	border: 1px solid #33518c;
-	transform: rotateY(180deg);
-}
-
-/* 장절은 왼쪽에서, 첫 소절은 오른쪽에서 — 두 열이 합쳐지는 방향 그대로 */
-.merge-ref {
-	font-size: 2.1rem;
+/* 판 위에 배경 없이 얹히므로 그림자로 대비를 만든다 */
+.reveal-ref {
+	font-size: 2.4rem;
 	font-weight: 700;
 	color: #7ee0a8;
 	font-variant-numeric: tabular-nums;
-	animation: from-left 0.3s ease-out both;
+	text-shadow:
+		0 2px 16px #05070a,
+		0 0 30px #05070a;
 }
 
-.merge-head {
-	font-size: 1.2rem;
-	font-weight: 600;
-	line-height: 1.4;
-	text-align: center;
-	word-break: keep-all;
-	animation: from-right 0.3s ease-out both;
-}
-
-.merge-title {
-	font-size: 1.5rem;
+.reveal-title {
+	font-size: 1.6rem;
 	font-weight: 700;
 	line-height: 1.35;
 	text-align: center;
 	word-break: keep-all;
+	text-shadow:
+		0 2px 16px #05070a,
+		0 0 30px #05070a;
 }
 
-.merge-again {
+.reveal-again {
 	margin: 0;
 	color: #d9a54a;
 	font-size: 0.85rem;
 	font-variant-numeric: tabular-nums;
+	text-shadow: 0 2px 12px #05070a;
 }
 
 /* 각인 단계의 두 장 — 크고 굵게 (읽으면서 눌러 확인) */
@@ -1002,27 +967,6 @@ body {
 	opacity: 0.3;
 	pointer-events: none;
 	transform: scale(0.96);
-}
-
-@keyframes merge-in {
-	from {
-		opacity: 0;
-		transform: scale(0.88);
-	}
-}
-
-@keyframes from-left {
-	from {
-		opacity: 0;
-		transform: translateX(-70px);
-	}
-}
-
-@keyframes from-right {
-	from {
-		opacity: 0;
-		transform: translateX(70px);
-	}
 }
 
 @keyframes fade-in {
