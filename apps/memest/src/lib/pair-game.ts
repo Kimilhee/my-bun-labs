@@ -17,11 +17,10 @@ export const SLOTS = 5
  */
 export const STALE_AGE = 5
 
-const MATCH = 10 // 짝 점수 (콤보 배수 적용)
-const MISS = -5 // 틀린 시도
-/** 콤보 상한 3 — 노화 감점(−1/턴)이 보상에 묻히지 않게 낮게 잡았다 */
-const COMBO_CAP = 3
-const STALE_COST = -1 // 오래 남은 카드 하나가 한 턴에 까먹는 점수
+/** 방치 비용 — 나이가 STALE_AGE를 넘긴 카드는 매 턴 부채가 1씩 깊어진다 */
+const STALE_COST = -1
+/** 맞추면 갚는 액수. 부채가 여전히 음수면 그 카드는 덱으로 돌아가 다시 나온다 */
+const MATCH_CREDIT = 5
 
 /** 첫 소절 = 3~5어절. 글자 수로 끊어야 타일 크기가 고르다 (ADR-22) */
 const HEAD_CHARS = 12
@@ -61,6 +60,25 @@ export const ageOf = (g: PairGame, id: string): number =>
 
 export const isStale = (g: PairGame, id: string): boolean =>
 	ageOf(g, id) >= STALE_AGE
+
+/** 카드의 현재 부채 (0이면 빚 없음) */
+export const debtOf = (g: PairGame, id: string): number => g.debt[id] ?? 0
+
+/**
+ * 이번 턴에 이 카드를 맞추면 부채가 얼마가 되는지. 0 이상이면 졸업(사라짐),
+ * 음수면 덱으로 돌아가 **다시 등장**한다 (하드 드릴의 부채와 같은 원리 — ADR-18).
+ * 리듀서와 화면이 같은 값을 쓰도록 여기 한 군데서만 계산한다.
+ */
+export function afterMatch(g: PairGame, id: string): number {
+	return debtOf(g, id) + (isStale(g, id) ? STALE_COST : 0) + MATCH_CREDIT
+}
+
+/** 부채가 깊을수록 덱 앞쪽에 꽂아 빨리 되돌아오게 한다 */
+function insertBack(deck: string[], id: string, debt: number): string[] {
+	const gap = debt <= -5 ? 1 : debt <= -2 ? 3 : 6
+	const i = Math.min(gap, deck.length)
+	return [...deck.slice(0, i), id, ...deck.slice(i)]
+}
 
 export const isFinished = (g: PairGame): boolean =>
 	g.deck.length === 0 && g.review === null && onBoard(g).length === 0
@@ -166,9 +184,10 @@ export function newGame(
 		refs: Array(Math.min(SLOTS, ids.length)).fill(null),
 		heads: Array(Math.min(SLOTS, ids.length)).fill(null),
 		born: {},
+		debt: {},
 		turn: 0,
-		score: 0,
-		combo: 0,
+		streak: 0,
+		bestStreak: 0,
 		misses: 0,
 		review: null,
 	}
@@ -191,35 +210,45 @@ const without = (slots: (string | null)[], id: string) =>
 
 /**
  * 한 턴 = 장절 타일 하나와 첫 소절 타일 하나를 고른 판정 (틀려도 턴은 흐른다).
- * 턴이 흐를 때마다 오래 남은 카드마다 −1점씩 깎인다.
+ * 턴이 흐를 때마다 오래 남은 카드는 부채가 1씩 깊어지고, 맞추면 +5를 갚는다.
  */
 export function tryPair(g: PairGame, refId: string, headId: string): PairGame {
 	if (g.review) return g
-	const stale = onBoard(g).filter((id) => isStale(g, id)).length
 	const hit = refId === headId
-	const combo = hit ? Math.min(g.combo + 1, COMBO_CAP) : 0
+	// 방치 비용은 **이번 턴 시작 시점에** 이미 오래된 카드에만 붙는다
+	const debt = { ...g.debt }
+	for (const id of onBoard(g))
+		if (isStale(g, id)) debt[id] = debtOf(g, id) + STALE_COST
+	const streak = hit ? g.streak + 1 : 0
 	const turned: PairGame = {
 		...g,
+		debt,
 		turn: g.turn + 1,
-		combo,
-		score: g.score + stale * STALE_COST + (hit ? MATCH * combo : MISS),
+		streak,
+		bestStreak: Math.max(g.bestStreak, streak),
 		misses: g.misses + (hit ? 0 : 1),
 	}
 	if (!hit) return turned
 
-	// 맞춘 카드는 판에서 빼되, 오래 남은 카드였다면 복습 확인을 한 겹 둔다
+	// 맞춤: 부채를 갚고, 다 갚았으면 졸업 / 남았으면 덱으로 돌려보낸다
+	const rest = afterMatch(g, refId)
+	const graduated = rest >= 0
+	if (graduated) delete debt[refId]
+	else debt[refId] = rest
 	const late = isStale(g, refId)
 	const next: PairGame = {
 		...turned,
 		refs: without(turned.refs, refId),
 		heads: without(turned.heads, refId),
-		done: turned.done + 1,
+		deck: graduated ? turned.deck : insertBack(turned.deck, refId, rest),
+		done: turned.done + (graduated ? 1 : 0),
+		// 회색 카드였으면 각인 단계를 한 겹 둔다 (두 타일을 각각 눌러야 넘어감)
 		review: late ? { verseId: refId, ref: false, head: false } : null,
 	}
 	return late ? next : settle(next)
 }
 
-/** 복습 확인 단계에서 두 타일을 각각 한 번씩 누르면 완료 */
+/** 각인 단계에서 두 타일을 각각 한 번씩 누르면 완료 */
 export function reviewTap(g: PairGame, kind: 'ref' | 'head'): PairGame {
 	if (!g.review) return g
 	const review = { ...g.review, [kind]: true }

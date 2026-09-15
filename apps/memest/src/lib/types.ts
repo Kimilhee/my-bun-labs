@@ -66,8 +66,8 @@ export type Stats = {
 	hints: number
 }
 
-/** 짝 맞추기 기록 (범위별 최고 점수와 그때 걸린 턴). 암송 채점과는 무관하다 */
-export type PairRecord = { score: number; turns: number }
+/** 짝 맞추기 기록 (범위별 최소 턴과 그때의 최고 연속) */
+export type PairRecord = { turns: number; streak: number }
 
 /**
  * 짝 맞추기 진행. 왼쪽 열(`refs` = 장절)과 오른쪽 열(`heads` = 첫 소절)은 같은
@@ -79,16 +79,18 @@ export type PairGame = {
 	scope: string[] | null
 	starredOnly: boolean
 	total: number // 범위의 전체 쌍 수 (진행률 분모)
-	done: number // 지운 쌍 수
-	deck: string[] // 아직 안 나온 구절 (셔플됨)
+	done: number // 졸업한(부채를 다 갚은) 쌍 수
+	deck: string[] // 아직 안 나온 구절 + 되돌아온 구절 (셔플됨)
 	refs: (string | null)[]
 	heads: (string | null)[]
 	born: Record<string, number> // verseId → 보드에 등장한 시점의 턴 수 (나이 계산용)
+	/** 카드별 부채(음수). 방치 턴마다 −1, 맞추면 +5. 0 이상이 되면 졸업하고 항목 삭제 */
+	debt: Record<string, number>
 	turn: number // 완료된 판정 횟수 (맞춘 것·틀린 것 모두)
-	score: number
-	combo: number
+	streak: number // 연속으로 맞춘 수 (틀리면 0)
+	bestStreak: number
 	misses: number
-	/** 오래 남은 카드를 맞췄을 때의 복습 확인 — 두 타일을 각각 눌러야 사라진다 */
+	/** 회색(오래 남은) 카드를 맞췄을 때의 각인 단계 — 두 타일을 각각 눌러야 넘어간다 */
 	review: { verseId: string; ref: boolean; head: boolean } | null
 }
 

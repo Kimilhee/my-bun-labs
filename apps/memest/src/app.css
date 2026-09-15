@@ -793,52 +793,6 @@ body {
 	animation: pop 0.25s ease-out;
 }
 
-/* 맞춘 짝의 장절 + 제목 — 화면 중앙에 크게 띄우고 2초 뒤 사라진다.
-   판 위에 떠 있지만 pointer-events: none이라 다음 짝을 바로 이어서 누를 수 있다 */
-.match-flash {
-	position: fixed;
-	top: 50%;
-	left: 50%;
-	transform: translate(-50%, -50%);
-	z-index: 15;
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	gap: 8px;
-	min-width: min(76vw, 360px);
-	max-width: min(92vw, 460px);
-	padding: 26px 30px;
-	border: 1px solid #2f6a4e;
-	border-radius: 20px;
-	background: #0f1a14; /* 반투명이면 뒤 타일 글자가 비쳐 읽기 어렵다 */
-	box-shadow: 0 18px 44px rgba(0, 0, 0, 0.55);
-	text-align: center;
-	pointer-events: none;
-	animation: flash-in 0.18s ease-out;
-}
-
-.match-ref {
-	font-size: 2.2rem;
-	font-weight: 700;
-	color: #7ee0a8;
-	font-variant-numeric: tabular-nums;
-}
-
-.match-title {
-	font-size: 1.35rem;
-	font-weight: 600;
-	line-height: 1.35;
-	color: #e8eaed;
-	word-break: keep-all;
-}
-
-@keyframes flash-in {
-	from {
-		opacity: 0;
-		transform: translate(-50%, -50%) scale(0.9);
-	}
-}
-
 /* 왼쪽 = 장절, 오른쪽 = 첫 소절. 두 열은 서로 다른 순서로 섞인다 */
 .pair-board {
 	flex: 1;
@@ -858,6 +812,7 @@ body {
 
 /* 기본 카드는 검정. 오래 남은 카드만 회색으로 뜬다 */
 .tile {
+	position: relative; /* 부채 배지의 기준 */
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -881,7 +836,18 @@ body {
 	font-variant-numeric: tabular-nums;
 }
 
-/* 5턴을 넘긴 카드 = 매 턴 −1점을 내는 중 (맞출 때 복습 확인이 붙는다) */
+/* 아직 빚이 남은 카드 — 맞춰도 한 번 더 나온다는 표시 */
+.tile-debt {
+	position: absolute;
+	top: 6px;
+	right: 9px;
+	color: #d9a54a;
+	font-size: 0.72rem;
+	font-weight: 600;
+	font-variant-numeric: tabular-nums;
+}
+
+/* 5턴을 넘긴 카드 = 매 턴 부채가 깊어지는 중 (맞출 때 각인 단계가 붙는다) */
 .tile.stale {
 	background: #333b47;
 	border-color: #49525f;
@@ -925,8 +891,10 @@ body {
 	text-align: center;
 }
 
-/* 복습 확인 — 오래 남았던 카드는 두 타일을 각각 눌러야 지워진다 */
-.review-overlay {
+/* ── 맞춘 짝 공개 연출 ──
+   두 타일이 하나로 합쳐진 카드가 중앙에 뜨고, 뒤집히면 제목이 나온다.
+   회색 카드였으면 두 장으로 갈라져 각각 눌러 각인한다 (그때만 입력을 잡는다). */
+.reveal-stage {
 	position: fixed;
 	inset: 0;
 	z-index: 20;
@@ -936,27 +904,129 @@ body {
 	justify-content: center;
 	gap: 14px;
 	padding: 24px;
+	pointer-events: none; /* 합쳐진 카드가 떠 있는 동안에도 다음 짝을 누를 수 있다 */
+	perspective: 1200px;
+}
+
+.reveal-stage.split {
+	pointer-events: auto;
 	background: rgba(6, 8, 11, 0.94);
-	animation: fade-in 0.18s ease-out;
+	animation: fade-in 0.2s ease-out;
+}
+
+.merge-card {
+	position: relative;
+	width: min(80vw, 380px);
+	height: 176px;
+	transform-style: preserve-3d;
+	transition: transform 0.5s ease-in-out;
+	animation: merge-in 0.28s ease-out;
+}
+
+.merge-card.flipped {
+	transform: rotateY(180deg);
+}
+
+.merge-face {
+	position: absolute;
+	inset: 0;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 12px;
+	padding: 20px 22px;
+	border-radius: 20px;
+	box-shadow: 0 18px 44px rgba(0, 0, 0, 0.55);
+	backface-visibility: hidden;
+	-webkit-backface-visibility: hidden;
+}
+
+.merge-front {
+	background: #0f1a14;
+	border: 1px solid #2f6a4e;
+}
+
+.merge-back {
+	background: #101a2c;
+	border: 1px solid #33518c;
+	transform: rotateY(180deg);
+}
+
+/* 장절은 왼쪽에서, 첫 소절은 오른쪽에서 — 두 열이 합쳐지는 방향 그대로 */
+.merge-ref {
+	font-size: 2.1rem;
+	font-weight: 700;
+	color: #7ee0a8;
+	font-variant-numeric: tabular-nums;
+	animation: from-left 0.3s ease-out both;
+}
+
+.merge-head {
+	font-size: 1.2rem;
+	font-weight: 600;
+	line-height: 1.4;
+	text-align: center;
+	word-break: keep-all;
+	animation: from-right 0.3s ease-out both;
+}
+
+.merge-title {
+	font-size: 1.5rem;
+	font-weight: 700;
+	line-height: 1.35;
+	text-align: center;
+	word-break: keep-all;
+}
+
+.merge-again {
+	margin: 0;
+	color: #d9a54a;
+	font-size: 0.85rem;
+	font-variant-numeric: tabular-nums;
+}
+
+/* 각인 단계의 두 장 — 크고 굵게 (읽으면서 눌러 확인) */
+.confirm-tile {
+	width: 100%;
+	max-width: 420px;
+	min-height: 96px;
+	background: #333b47;
+	border-color: #49525f;
+	font-size: 1.5rem;
+	font-weight: 700;
+	line-height: 1.35;
+}
+
+.confirm-tile.done {
+	opacity: 0.3;
+	pointer-events: none;
+	transform: scale(0.96);
+}
+
+@keyframes merge-in {
+	from {
+		opacity: 0;
+		transform: scale(0.88);
+	}
+}
+
+@keyframes from-left {
+	from {
+		opacity: 0;
+		transform: translateX(-70px);
+	}
+}
+
+@keyframes from-right {
+	from {
+		opacity: 0;
+		transform: translateX(70px);
+	}
 }
 
 @keyframes fade-in {
 	from {
 		opacity: 0;
 	}
-}
-
-.review-tile {
-	width: 100%;
-	max-width: 420px;
-	min-height: 84px;
-	background: #333b47;
-	border-color: #49525f;
-	font-size: 1.05rem;
-}
-
-.review-tile.done {
-	opacity: 0.25;
-	pointer-events: none;
-	transform: scale(0.94);
 }

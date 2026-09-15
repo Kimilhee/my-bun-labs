@@ -237,16 +237,16 @@ export function reduce(data: AppData, action: Action): AppData {
 			if (!g) return data
 			const key = scopeSig(g.scope, g.starredOnly)
 			const prev = data.pairBest[key]
-			// 점수가 더 높으면(같으면 턴이 적으면) 갈아치운다
-			const better =
-				!prev ||
-				g.score > prev.score ||
-				(g.score === prev.score && g.turn < prev.turns)
+			// 기록은 **최소 턴** (같은 범위를 몇 턴에 다 지웠나) + 그 판의 최고 연속
+			const better = !prev || g.turn < prev.turns
 			return {
 				...data,
 				pair: null,
 				pairBest: better
-					? { ...data.pairBest, [key]: { score: g.score, turns: g.turn } }
+					? {
+							...data.pairBest,
+							[key]: { turns: g.turn, streak: g.bestStreak },
+						}
 					: data.pairBest,
 			}
 		}

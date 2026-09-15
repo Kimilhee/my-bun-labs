@@ -131,14 +131,14 @@ export function StartScreen({
 						<b>짝 맞추기</b>
 						<span className="note">
 							{pair
-								? `${pair.done}/${pair.total}쌍 · ${pair.score.toLocaleString()}점`
+								? `${pair.done}/${pair.total}쌍 · ${pair.turn}턴`
 								: '장절 ↔ 첫 소절'}
 						</span>
 					</div>
 					<div className="mode-title">
 						{pair
 							? scopeLabel(pair.scope)
-							: '범위를 골라 장절과 첫 소절을 짝지어 지우는 게임. 오래 남은 카드는 매 턴 −1점.'}
+							: '범위를 골라 장절과 첫 소절을 짝지어 지우는 게임. 오래 방치한 카드는 맞춰도 다시 나온다.'}
 					</div>
 					{pair && (
 						<button type="button" className="btn primary big" onClick={onPair}>
