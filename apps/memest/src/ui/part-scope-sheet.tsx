@@ -4,9 +4,10 @@ import { scopeKey } from '../lib/session'
 import type { AppData, Part } from '../lib/types'
 
 type Props = {
+	title: string // 어느 모드의 범위인지 (하드드릴 / 짝 맞추기)
 	scope: string[] | null // null = 전체 (마지막에 고른 범위)
 	stars: AppData['stars']
-	/** 고른 범위로 하드드릴 세션을 시작한다 */
+	/** 고른 범위로 시작한다 (하드드릴 세션 또는 짝 맞추기 판) */
 	onApply: (scope: string[] | null, starredOnly: boolean) => void
 	onClose: () => void
 }
@@ -57,8 +58,14 @@ function collapse(selected: Set<string>): string[] {
 const countOf = (leaf: string) =>
 	midCounts.get(leaf) ?? parts.find((p) => p.code === leaf)?.count ?? 0
 
-/** 하드드릴 범위 선택 시트. [시작]을 눌러야 반영되고, [취소]·배경 탭은 폐기. */
-export function PartScopeSheet({ scope, stars, onApply, onClose }: Props) {
+/** 범위 선택 시트 (하드드릴·짝 맞추기 공용). [시작]을 눌러야 반영되고, [취소]·배경 탭은 폐기. */
+export function PartScopeSheet({
+	title,
+	scope,
+	stars,
+	onApply,
+	onClose,
+}: Props) {
 	const [selected, setSelected] = useState<Set<string>>(() => expand(scope))
 	const [starredOnly, setStarredOnly] = useState(false)
 	// ▸ 탭으로 편 파트 (중제목이 있는 파트에만 화살표가 붙는다)
@@ -113,7 +120,7 @@ export function PartScopeSheet({ scope, stars, onApply, onClose }: Props) {
 			/>
 			<div className="sheet full">
 				<div className="sheet-head">
-					<b>하드드릴 범위</b>
+					<b>{title}</b>
 					<span className="note">
 						{partCount}개 파트 · {verseCount}구절
 					</span>

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import type { Action } from '../lib/app-state'
 import { dayAt, days, todayStr } from '../lib/curriculum'
 import { isStarred, verses } from '../lib/data'
-import { type PairPool, poolLabel, poolVerses } from '../lib/pair-game'
+import { isFinished } from '../lib/pair-game'
 import { scopeLabel } from '../lib/session'
 import type { AppData } from '../lib/types'
 import { PartScopeSheet } from './part-scope-sheet'
@@ -12,8 +12,8 @@ type Props = {
 	dispatch: (a: Action) => void
 	/** 세션으로 들어간다 (홈에 나와 있던 상태를 푼다) */
 	onEnter: () => void
-	/** 짝 맞추기 게임 시작 (세션과 무관한 별도 화면) */
-	onPair: (pool: PairPool) => void
+	/** 짝 맞추기 화면으로 (세션과 무관한 별도 화면) */
+	onPair: () => void
 	onSettings: () => void
 }
 
@@ -29,6 +29,7 @@ export function StartScreen({
 	onSettings,
 }: Props) {
 	const [scopeOpen, setScopeOpen] = useState(false)
+	const [pairScopeOpen, setPairScopeOpen] = useState(false)
 
 	const today = dayAt(data.daily.order[0] ?? 0)
 	// 이번 바퀴에서 몇 번째인지 (남은 큐 길이로 역산)
@@ -40,14 +41,7 @@ export function StartScreen({
 	const starredCount = verses.filter((v) => isStarred(data.stars, v)).length
 	const debtCount = Object.keys(data.drill).length
 	const left = (s: typeof daily) => (s ? new Set(s.queue).size : 0)
-	// 세 풀 중 최고 점수 하나만 카드 머리에 보여준다
-	const bestOf = (pools: PairPool[]) => {
-		const top = pools
-			.map((p) => data.pairBest[p])
-			.filter((r) => r !== undefined)
-			.sort((a, b) => b.score - a.score)[0]
-		return top ? `최고 ${top.score.toLocaleString()}점` : null
-	}
+	const pair = data.pair
 
 	return (
 		<div className="screen">
@@ -136,30 +130,30 @@ export function StartScreen({
 					<div className="mode-head">
 						<b>짝 맞추기</b>
 						<span className="note">
-							{bestOf(['today', 'starred', 'all']) ?? '기록 없음'}
+							{pair
+								? `${pair.done}/${pair.total}쌍 · ${pair.score.toLocaleString()}점`
+								: '장절 ↔ 첫 소절'}
 						</span>
 					</div>
 					<div className="mode-title">
-						장절과 첫 소절을 짝지어 지우는 워밍업 게임. 점수·콤보만 있고 부채는
-						쌓이지 않는다.
+						{pair
+							? scopeLabel(pair.scope)
+							: '범위를 골라 장절과 첫 소절을 짝지어 지우는 게임. 오래 남은 카드는 매 턴 −1점.'}
 					</div>
-					<div className="pool-pick">
-						{(['today', 'starred', 'all'] as PairPool[]).map((p) => {
-							const n = poolVerses(p, data).length
-							return (
-								<button
-									key={p}
-									type="button"
-									className="btn"
-									disabled={n < 2}
-									onClick={() => onPair(p)}
-								>
-									{poolLabel[p]}
-									<span className="note"> {n}</span>
-								</button>
-							)
-						})}
-					</div>
+					{pair && (
+						<button type="button" className="btn primary big" onClick={onPair}>
+							{isFinished(pair)
+								? '완주 결과 보기'
+								: `이어하기 (${pair.total - pair.done}쌍 남음)`}
+						</button>
+					)}
+					<button
+						type="button"
+						className={`btn ${pair ? '' : 'primary big'}`}
+						onClick={() => setPairScopeOpen(true)}
+					>
+						{pair ? '범위 새로 고르기…' : '범위 고르기…'}
+					</button>
 				</div>
 
 				<p className="note home-foot">
@@ -168,8 +162,23 @@ export function StartScreen({
 				</p>
 			</div>
 
+			{pairScopeOpen && (
+				<PartScopeSheet
+					title="짝 맞추기 범위"
+					scope={data.pair?.scope ?? data.settings.scopeParts}
+					stars={data.stars}
+					onApply={(scope, starredOnly) => {
+						dispatch({ type: 'startPair', scope, starredOnly })
+						setPairScopeOpen(false)
+						onPair()
+					}}
+					onClose={() => setPairScopeOpen(false)}
+				/>
+			)}
+
 			{scopeOpen && (
 				<PartScopeSheet
+					title="하드드릴 범위"
 					scope={data.settings.scopeParts}
 					stars={data.stars}
 					onApply={(scope, starredOnly) => {

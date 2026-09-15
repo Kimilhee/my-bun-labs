@@ -66,8 +66,31 @@ export type Stats = {
 	hints: number
 }
 
-/** 짝 맞추기 게임의 기록 (풀별 최고 점수). 암송 채점과는 무관하다 */
-export type PairRecord = { score: number; stage: number }
+/** 짝 맞추기 기록 (범위별 최고 점수와 그때 걸린 턴). 암송 채점과는 무관하다 */
+export type PairRecord = { score: number; turns: number }
+
+/**
+ * 짝 맞추기 진행. 왼쪽 열(`refs` = 장절)과 오른쪽 열(`heads` = 첫 소절)은 같은
+ * 카드 집합을 서로 다른 순서로 담는 **슬롯 배열**이다 (null = 빈 자리).
+ * 빈 자리는 2개가 모였을 때만 채운다 — 한 장씩 채우면 새로 들어온 두 타일이
+ * 반드시 짝이라 몰라도 맞출 수 있게 되기 때문.
+ */
+export type PairGame = {
+	scope: string[] | null
+	starredOnly: boolean
+	total: number // 범위의 전체 쌍 수 (진행률 분모)
+	done: number // 지운 쌍 수
+	deck: string[] // 아직 안 나온 구절 (셔플됨)
+	refs: (string | null)[]
+	heads: (string | null)[]
+	born: Record<string, number> // verseId → 보드에 등장한 시점의 턴 수 (나이 계산용)
+	turn: number // 완료된 판정 횟수 (맞춘 것·틀린 것 모두)
+	score: number
+	combo: number
+	misses: number
+	/** 오래 남은 카드를 맞췄을 때의 복습 확인 — 두 타일을 각각 눌러야 사라진다 */
+	review: { verseId: string; ref: boolean; head: boolean } | null
+}
 
 export type AppData = {
 	seen: Record<string, string> // verseId → 마지막으로 본 날 (리스트의 "다뤄본 구절" 판정)
@@ -78,6 +101,8 @@ export type AppData = {
 	daily: DailyProgress
 	/** 모드별로 따로 보관 — 오가도 각자의 진행이 그대로 남는다 */
 	sessions: { daily: Session | null; drill: Session | null }
-	/** 짝 맞추기 최고 기록 (풀 이름 → 기록). 세션이 아니라 기록만 남는다 */
+	/** 진행 중인 짝 맞추기 (없으면 null). 범위가 커서 한 판이 길기에 이어하기를 지원 */
+	pair: PairGame | null
+	/** 짝 맞추기 최고 기록 (범위 서명 → 기록) */
 	pairBest: Record<string, PairRecord>
 }

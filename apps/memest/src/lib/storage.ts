@@ -44,7 +44,13 @@ export function loadData(): AppData {
 				daily: sessions.daily ?? null,
 				drill: sessions.drill ?? null,
 			},
-			pairBest: parsed.pairBest ?? {},
+			pair: parsed.pair ?? null,
+			// v0.4.0의 기록은 {score, stage}였다 — 모양이 다른 항목은 버린다
+			pairBest: Object.fromEntries(
+				Object.entries(parsed.pairBest ?? {}).filter(
+					([, r]) => typeof (r as { turns?: unknown })?.turns === 'number',
+				),
+			),
 		}
 	} catch {
 		return defaultData

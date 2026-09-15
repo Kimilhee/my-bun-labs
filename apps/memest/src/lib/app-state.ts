@@ -8,6 +8,7 @@ import {
 	revealPenalty,
 	turnScore,
 } from './drill'
+import { newGame, reviewTap, scopeSig, tryPair } from './pair-game'
 import { buildDrillQueue } from './session'
 import type { AppData, ReviewOrder, Session, SessionMode } from './types'
 
@@ -24,6 +25,7 @@ export const defaultData: AppData = {
 	},
 	daily: { order: fullLap(), doneDate: null },
 	sessions: { daily: null, drill: null },
+	pair: null,
 	pairBest: {},
 }
 
@@ -42,7 +44,10 @@ export type Action =
 	| { type: 'setListFull'; on: boolean }
 	| { type: 'setReviewOrder'; order: ReviewOrder }
 	| { type: 'redoVerse'; verseId: string; showAnswer?: boolean } // 지나온 구절을 다시 현재 카드로 (showAnswer면 전문부터)
-	| { type: 'pairResult'; pool: string; score: number; stage: number } // 짝 맞추기 기록 갱신
+	| { type: 'startPair'; scope: string[] | null; starredOnly: boolean }
+	| { type: 'pairTry'; refId: string; headId: string } // 짝 맞추기 한 턴
+	| { type: 'pairReviewTap'; kind: 'ref' | 'head' } // 복습 확인 단계의 탭
+	| { type: 'pairFinish' } // 완주(또는 포기) — 기록만 남기고 판을 버린다
 	| { type: 'importData'; data: AppData }
 	| { type: 'resetProgress' }
 
@@ -214,18 +219,35 @@ export function reduce(data: AppData, action: Action): AppData {
 				peeked: Boolean(action.showAnswer),
 			})
 		}
-		case 'pairResult': {
-			const prev = data.pairBest[action.pool]
-			// 점수와 스테이지는 각각 최고치를 남긴다 (콤보로 점수만 높은 판도 있다)
+		case 'startPair':
 			return {
 				...data,
-				pairBest: {
-					...data.pairBest,
-					[action.pool]: {
-						score: Math.max(prev?.score ?? 0, action.score),
-						stage: Math.max(prev?.stage ?? 0, action.stage),
-					},
-				},
+				pair: newGame(action.scope, action.starredOnly, data),
+			}
+		case 'pairTry':
+			return data.pair
+				? { ...data, pair: tryPair(data.pair, action.refId, action.headId) }
+				: data
+		case 'pairReviewTap':
+			return data.pair
+				? { ...data, pair: reviewTap(data.pair, action.kind) }
+				: data
+		case 'pairFinish': {
+			const g = data.pair
+			if (!g) return data
+			const key = scopeSig(g.scope, g.starredOnly)
+			const prev = data.pairBest[key]
+			// 점수가 더 높으면(같으면 턴이 적으면) 갈아치운다
+			const better =
+				!prev ||
+				g.score > prev.score ||
+				(g.score === prev.score && g.turn < prev.turns)
+			return {
+				...data,
+				pair: null,
+				pairBest: better
+					? { ...data.pairBest, [key]: { score: g.score, turns: g.turn } }
+					: data.pairBest,
 			}
 		}
 		case 'importData':
@@ -241,6 +263,8 @@ export function reduce(data: AppData, action: Action): AppData {
 					doneDate: null,
 				},
 				sessions: { daily: null, drill: null },
+				pair: null,
+				pairBest: {},
 			}
 	}
 }
