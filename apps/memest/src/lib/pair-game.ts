@@ -209,26 +209,26 @@ const without = (slots: (string | null)[], id: string) =>
 	slots.map((s) => (s === id ? null : s))
 
 /**
- * 한 턴 = 장절 타일 하나와 첫 소절 타일 하나를 고른 판정 (틀려도 턴은 흐른다).
+ * 한 턴 = **맞춘** 판정 하나. 틀린 시도는 연속만 끊고 턴을 세지 않는다 —
+ * 틀린 것도 턴으로 세면 한 구절을 여러 번 틀리는 동안 판 전체가 늙어버린다.
  * 턴이 흐를 때마다 오래 남은 카드는 부채가 1씩 깊어지고, 맞추면 +5를 갚는다.
  */
 export function tryPair(g: PairGame, refId: string, headId: string): PairGame {
 	if (g.review) return g
-	const hit = refId === headId
+	if (refId !== headId) return { ...g, streak: 0, misses: g.misses + 1 } // 틀림 — 시간은 흐르지 않는다
+
 	// 방치 비용은 **이번 턴 시작 시점에** 이미 오래된 카드에만 붙는다
 	const debt = { ...g.debt }
 	for (const id of onBoard(g))
 		if (isStale(g, id)) debt[id] = debtOf(g, id) + STALE_COST
-	const streak = hit ? g.streak + 1 : 0
+	const streak = g.streak + 1
 	const turned: PairGame = {
 		...g,
 		debt,
 		turn: g.turn + 1,
 		streak,
 		bestStreak: Math.max(g.bestStreak, streak),
-		misses: g.misses + (hit ? 0 : 1),
 	}
-	if (!hit) return turned
 
 	// 맞춤: 부채를 갚고, 다 갚았으면 졸업 / 남았으면 덱으로 돌려보낸다
 	const rest = afterMatch(g, refId)

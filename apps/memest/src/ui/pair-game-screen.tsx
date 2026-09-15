@@ -10,7 +10,6 @@ import {
 	scopeSig,
 } from '../lib/pair-game'
 import { scopeLabel } from '../lib/session'
-import { speak, spokenRef } from '../lib/speech'
 import type { AppData, PairGame } from '../lib/types'
 
 type Props = {
@@ -123,8 +122,7 @@ export function PairGameScreen({ data, game, dispatch, onHome }: Props) {
 		})
 		setSplit(confirm)
 		const gen = ++seq.current
-		if (confirm) speak(`${spokenRef(v.ref)}. ${headPhrase(v.text)}`)
-		else later(() => seq.current === gen && setReveal(null), 1500)
+		if (!confirm) later(() => seq.current === gen && setReveal(null), 1500)
 		dispatch({ type: 'pairTry', refId, headId })
 	}
 
@@ -132,8 +130,6 @@ export function PairGameScreen({ data, game, dispatch, onHome }: Props) {
 	const confirmTap = (kind: Side) => {
 		const rv = game.review
 		if (!rv || rv[kind]) return
-		const v = mustVerse(rv.verseId)
-		speak(kind === 'ref' ? spokenRef(v.ref) : headPhrase(v.text))
 		if (rv.ref || rv.head) {
 			// 이번이 두 번째 탭 — 각인 끝, 연출을 걷는다
 			seq.current++

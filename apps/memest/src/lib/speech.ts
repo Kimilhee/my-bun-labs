@@ -136,28 +136,3 @@ export function playPass() {
 		// 소리는 부가 기능 — 실패해도 무시
 	}
 }
-
-/** 장절 약어를 읽기 좋은 말로 (`요16:24` → `요 16장 24절`) */
-export function spokenRef(ref: string): string {
-	const m = ref.match(/^(.+?)\s*(\d+)\s*:\s*([\d,\-\s]+)$/)
-	if (!m) return ref
-	return `${m[1]} ${m[2]}장 ${m[3]?.trim()}절`
-}
-
-/**
- * 한국어 TTS (Web Speech 합성). 지원 안 되면 조용히 아무 것도 안 한다 —
- * 짝 맞추기의 각인 단계에서 장절과 첫 소절을 읽어주는 데만 쓴다.
- */
-export function speak(text: string) {
-	const synth = window.speechSynthesis
-	if (!synth) return
-	try {
-		synth.cancel() // 앞의 낭독이 남아 겹치지 않게
-		const u = new SpeechSynthesisUtterance(text)
-		u.lang = 'ko-KR'
-		u.rate = 0.95
-		synth.speak(u)
-	} catch {
-		// 합성 실패는 게임 진행과 무관하므로 무시
-	}
-}
