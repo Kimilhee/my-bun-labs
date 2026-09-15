@@ -21,7 +21,9 @@ type Side = 'ref' | 'head'
 export function PairGameScreen({ data, game, dispatch, onHome }: Props) {
 	const [pick, setPick] = useState<{ side: Side; id: string } | null>(null)
 	const [wrong, setWrong] = useState<string[]>([])
-	const [flash, setFlash] = useState<string | null>(null)
+	const [flash, setFlash] = useState<{ ref: string; title: string } | null>(
+		null,
+	)
 
 	const timers = useRef<number[]>([])
 	const later = (fn: () => void, ms: number) => {
@@ -74,9 +76,12 @@ export function PairGameScreen({ data, game, dispatch, onHome }: Props) {
 		const headId = side === 'head' ? id : pick.id
 		setPick(null)
 		if (refId === headId) {
-			const v = mustVerse(refId)
-			setFlash(`${v.ref} · ${v.title}`)
-			later(() => setFlash(null), 2000)
+			// 복습 확인이 뜨는 카드는 그 화면이 장절·제목을 보여주므로 생략
+			if (!isStale(game, refId)) {
+				const v = mustVerse(refId)
+				setFlash({ ref: v.ref, title: v.title })
+				later(() => setFlash(null), 2000)
+			}
 		} else {
 			setWrong([refId, headId])
 			later(() => setWrong([]), 500)
@@ -88,7 +93,9 @@ export function PairGameScreen({ data, game, dispatch, onHome }: Props) {
 		if (id === null) return 'tile empty'
 		const hit = wrong.includes(id) ? 'wrong' : ''
 		const on = pick?.side === side && pick.id === id ? 'picked' : ''
-		return `tile ${isStale(game, id) ? 'stale' : ''} ${hit} ${on}`
+		// 회색 표시는 **장절 열만** — 양쪽을 다 칠하면 짝이 너무 드러난다
+		const old = side === 'ref' && isStale(game, id) ? 'stale' : ''
+		return `tile ${old} ${hit} ${on}`
 	}
 
 	const pct = Math.round((game.done / game.total) * 100)
@@ -121,8 +128,6 @@ export function PairGameScreen({ data, game, dispatch, onHome }: Props) {
 					{game.combo > 1 ? `${game.combo}콤보 x${game.combo}` : ' '}
 				</span>
 			</div>
-
-			<div className="pair-flash">{flash ?? ' '}</div>
 
 			<div className="pair-board">
 				<div className="pair-col">
@@ -159,12 +164,20 @@ export function PairGameScreen({ data, game, dispatch, onHome }: Props) {
 				<span className="note">{scopeLabel(game.scope)}</span>
 			</div>
 
+			{/* 맞춘 짝 — 화면 중앙에 크게 (탭은 그대로 판으로 통과한다) */}
+			{flash && (
+				<div className="match-flash">
+					<div className="match-ref">{flash.ref}</div>
+					<div className="match-title">{flash.title}</div>
+				</div>
+			)}
+
 			{/* 오래 남아 있던 카드를 맞췄을 때 — 두 타일을 각각 눌러 확인하고 지운다 */}
 			{review && rv && (
 				<div className="review-overlay">
-					<p className="review-title">
-						{rv.ref} · {rv.title}
-					</p>
+					{/* 정답 공개는 맞춘 짝 표시와 같은 모양으로 */}
+					<div className="match-ref">{rv.ref}</div>
+					<div className="match-title">{rv.title}</div>
 					<p className="note">두 카드를 눌러 확인하고 지우기</p>
 					<button
 						type="button"
