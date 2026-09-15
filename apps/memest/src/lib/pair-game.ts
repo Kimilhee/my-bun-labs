@@ -111,6 +111,21 @@ function take(
 	return { picked, deck: rest }
 }
 
+/**
+ * 장절 열은 **등장 순서대로 위에서부터** 채운다 — 빈 자리는 언제나 맨 아래이고,
+ * 새 카드는 맨 밑에 붙는다. (첫 소절 열만 무작위 자리를 쓴다.)
+ */
+function stack(
+	slots: (string | null)[],
+	added: string[] = [],
+): (string | null)[] {
+	const kept = [...slots.filter((s): s is string => s !== null), ...added]
+	return [
+		...kept,
+		...(Array(Math.max(0, slots.length - kept.length)).fill(null) as null[]),
+	]
+}
+
 /** 빈 자리에 무작위로 꽂는다 (두 열을 따로 섞으므로 같은 줄이 짝이 아니다) */
 function fill(slots: (string | null)[], ids: string[]): (string | null)[] {
 	const free = shuffle(slots.flatMap((s, i) => (s === null ? [i] : [])))
@@ -151,7 +166,7 @@ function settle(g: PairGame): PairGame {
 	if (picked.length === 0) return g
 	const born = { ...g.born }
 	for (const id of picked) born[id] = g.turn
-	const refs = fill(g.refs, picked)
+	const refs = stack(g.refs, picked)
 	return {
 		...g,
 		deck,
@@ -195,7 +210,7 @@ export function newGame(
 	const { picked, deck } = take(empty.deck, [], empty.refs.length)
 	const born: Record<string, number> = {}
 	for (const id of picked) born[id] = 0
-	const refs = fill(empty.refs, picked)
+	const refs = stack(empty.refs, picked)
 	return {
 		...empty,
 		deck,
@@ -238,20 +253,22 @@ export function tryPair(g: PairGame, refId: string, headId: string): PairGame {
 	const late = isStale(g, refId)
 	const next: PairGame = {
 		...turned,
-		refs: without(turned.refs, refId),
+		refs: stack(without(turned.refs, refId)),
 		heads: without(turned.heads, refId),
 		deck: graduated ? turned.deck : insertBack(turned.deck, refId, rest),
 		done: turned.done + (graduated ? 1 : 0),
 		// 회색 카드였으면 각인 단계를 한 겹 둔다 (두 타일을 각각 눌러야 넘어감)
-		review: late ? { verseId: refId, ref: false, head: false } : null,
+		review: late ? { verseId: refId, step: 0 } : null,
 	}
 	return late ? next : settle(next)
 }
 
-/** 각인 단계에서 두 타일을 각각 한 번씩 누르면 완료 */
-export function reviewTap(g: PairGame, kind: 'ref' | 'head'): PairGame {
+/**
+ * 각인 단계 진행. 첫 탭은 두 장을 한 장으로 합치고(step 1), 두 번째 탭이 끝낸다.
+ */
+export function reviewTap(g: PairGame): PairGame {
 	if (!g.review) return g
-	const review = { ...g.review, [kind]: true }
-	if (!review.ref || !review.head) return { ...g, review }
+	const step = g.review.step + 1
+	if (step < 2) return { ...g, review: { ...g.review, step } }
 	return settle({ ...g, review: null })
 }

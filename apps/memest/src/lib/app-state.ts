@@ -46,7 +46,7 @@ export type Action =
 	| { type: 'redoVerse'; verseId: string; showAnswer?: boolean } // 지나온 구절을 다시 현재 카드로 (showAnswer면 전문부터)
 	| { type: 'startPair'; scope: string[] | null; starredOnly: boolean }
 	| { type: 'pairTry'; refId: string; headId: string } // 짝 맞추기 한 턴
-	| { type: 'pairReviewTap'; kind: 'ref' | 'head' } // 복습 확인 단계의 탭
+	| { type: 'pairReviewTap' } // 각인 단계의 탭 (두 번 누르면 끝)
 	| { type: 'pairFinish' } // 완주(또는 포기) — 기록만 남기고 판을 버린다
 	| { type: 'importData'; data: AppData }
 	| { type: 'resetProgress' }
@@ -229,9 +229,7 @@ export function reduce(data: AppData, action: Action): AppData {
 				? { ...data, pair: tryPair(data.pair, action.refId, action.headId) }
 				: data
 		case 'pairReviewTap':
-			return data.pair
-				? { ...data, pair: reviewTap(data.pair, action.kind) }
-				: data
+			return data.pair ? { ...data, pair: reviewTap(data.pair) } : data
 		case 'pairFinish': {
 			const g = data.pair
 			if (!g) return data

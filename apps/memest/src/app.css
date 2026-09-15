@@ -924,7 +924,7 @@ body {
 /* 판 위에 배경 없이 얹히므로 그림자로 대비를 만든다 */
 .reveal-ref {
 	font-size: 2.4rem;
-	font-weight: 700;
+	font-weight: 800;
 	color: #7ee0a8;
 	font-variant-numeric: tabular-nums;
 	text-shadow:
@@ -963,10 +963,67 @@ body {
 	line-height: 1.35;
 }
 
-.confirm-tile.done {
-	opacity: 0.3;
-	pointer-events: none;
-	transform: scale(0.96);
+/* 한 번 누르면 두 장이 한 장으로 합쳐지고 글자가 한 단 커진다 */
+.confirm-tile.merged {
+	flex-direction: column;
+	gap: 14px;
+	min-height: 208px;
+	animation: merge-pop 0.24s ease-out;
+}
+
+.confirm-ref {
+	font-size: 2.1rem;
+	font-weight: 700;
+	color: #cfe0ff;
+	font-variant-numeric: tabular-nums;
+}
+
+.confirm-head {
+	font-size: 1.75rem;
+	font-weight: 700;
+	line-height: 1.35;
+}
+
+@keyframes merge-pop {
+	from {
+		transform: scale(0.94);
+	}
+}
+
+.reveal-head {
+	animation: bold-out 0.7s ease-in forwards;
+}
+
+.reveal-head {
+	font-size: 1.9rem;
+	font-weight: 800;
+	line-height: 1.35;
+	text-align: center;
+	word-break: keep-all;
+	text-shadow:
+		0 2px 16px #05070a,
+		0 0 30px #05070a;
+}
+
+/* 각인을 끝낸 뒤 — 카드는 즉시 사라지고 글자만 굵게 남아 흐려진다 */
+.reveal-stage.fading {
+	background: none;
+	animation: none;
+}
+
+.reveal-stage.fading .reveal-ref,
+.reveal-stage.fading @keyframes bold-out {
+	0% {
+		opacity: 1;
+	}
+45% {
+opacity: 1;
+		transform: scale(1.04);
+	}
+100% {
+opacity: 0;
+		transform: scale(1.06);
+	}
 }
 
 @keyframes fade-in {

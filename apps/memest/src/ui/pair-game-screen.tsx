@@ -50,6 +50,8 @@ export function PairGameScreen({ data, game, dispatch, onHome }: Props) {
 		}
 	})
 	const [split, setSplit] = useState(() => game.review !== null)
+	// 각인을 끝낸 뒤 카드 없이 글자만 굵게 남아 사라지는 마지막 0.7초
+	const [fading, setFading] = useState(false)
 	// 연출이 겹칠 때 앞의 타이머가 새 연출을 지우지 않도록 하는 세대 번호
 	const seq = useRef(0)
 
@@ -126,16 +128,24 @@ export function PairGameScreen({ data, game, dispatch, onHome }: Props) {
 		dispatch({ type: 'pairTry', refId, headId })
 	}
 
-	/** 각인 단계에서 한 장을 확인 — 두 장 다 누르면 리듀서가 다음 카드를 채운다 */
-	const confirmTap = (kind: Side) => {
+	/**
+	 * 각인 단계 탭. 첫 탭은 두 장을 한 장으로 합쳐 더 크게 보여주고,
+	 * 두 번째 탭은 카드를 즉시 없애고 글자만 굵게 남겨 페이드아웃시킨다.
+	 */
+	const confirmTap = () => {
 		const rv = game.review
-		if (!rv || rv[kind]) return
-		if (rv.ref || rv.head) {
-			// 이번이 두 번째 탭 — 각인 끝, 연출을 걷는다
-			seq.current++
-			later(() => setReveal(null), 220)
+		if (!rv) return
+		if (rv.step >= 1) {
+			const gen = ++seq.current
+			setSplit(false)
+			setFading(true)
+			later(() => {
+				if (seq.current !== gen) return
+				setFading(false)
+				setReveal(null)
+			}, 700)
 		}
-		dispatch({ type: 'pairReviewTap', kind })
+		dispatch({ type: 'pairReviewTap' })
 	}
 
 	const cls = (id: string | null, side: Side) => {
@@ -217,12 +227,18 @@ export function PairGameScreen({ data, game, dispatch, onHome }: Props) {
 			</div>
 
 			{reveal && (
-				<div className={`reveal-stage ${split ? 'split' : ''}`}>
+				<div
+					className={`reveal-stage ${split ? 'split' : ''} ${fading ? 'fading' : ''}`}
+				>
 					{!split && (
 						<>
 							<div className="reveal-ref">{reveal.ref}</div>
-							<div className="reveal-title">{reveal.title}</div>
-							{reveal.again !== null && (
+							{fading ? (
+								<div className="reveal-head">{reveal.head}</div>
+							) : (
+								<div className="reveal-title">{reveal.title}</div>
+							)}
+							{!fading && reveal.again !== null && (
 								<div className="reveal-again">
 									한 번 더 나옵니다 ({reveal.again})
 								</div>
@@ -232,21 +248,39 @@ export function PairGameScreen({ data, game, dispatch, onHome }: Props) {
 					{split && rv && (
 						<>
 							<div className="reveal-title">{reveal.title}</div>
-							<p className="note">두 카드를 눌러 각인하고 지우기</p>
-							<button
-								type="button"
-								className={`tile confirm-tile ${rv.ref ? 'done' : ''}`}
-								onClick={() => confirmTap('ref')}
-							>
-								{reveal.ref}
-							</button>
-							<button
-								type="button"
-								className={`tile confirm-tile ${rv.head ? 'done' : ''}`}
-								onClick={() => confirmTap('head')}
-							>
-								{reveal.head}
-							</button>
+							<p className="note">
+								{rv.step === 0
+									? '두 카드를 눌러 합치기'
+									: '한 번 더 눌러 지우기'}
+							</p>
+							{rv.step === 0 ? (
+								<>
+									<button
+										type="button"
+										className="tile confirm-tile"
+										onClick={confirmTap}
+									>
+										{reveal.ref}
+									</button>
+									<button
+										type="button"
+										className="tile confirm-tile"
+										onClick={confirmTap}
+									>
+										{reveal.head}
+									</button>
+								</>
+							) : (
+								/* 두 장이 하나로 — 글자도 한 단 커진다 */
+								<button
+									type="button"
+									className="tile confirm-tile merged"
+									onClick={confirmTap}
+								>
+									<span className="confirm-ref">{reveal.ref}</span>
+									<span className="confirm-head">{reveal.head}</span>
+								</button>
+							)}
 							{reveal.again !== null && (
 								<p className="reveal-again">
 									한 번 더 나옵니다 ({reveal.again})

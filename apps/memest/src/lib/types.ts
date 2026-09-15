@@ -90,8 +90,11 @@ export type PairGame = {
 	streak: number // 연속으로 맞춘 수 (틀리면 0)
 	bestStreak: number
 	misses: number
-	/** 회색(오래 남은) 카드를 맞췄을 때의 각인 단계 — 두 타일을 각각 눌러야 넘어간다 */
-	review: { verseId: string; ref: boolean; head: boolean } | null
+	/**
+	 * 회색(오래 남은) 카드를 맞췄을 때의 각인 단계.
+	 * step 0 = 두 장이 따로, 1 = 한 장으로 합쳐져 크게. 두 번 누르면 끝난다.
+	 */
+	review: { verseId: string; step: number } | null
 }
 
 export type AppData = {

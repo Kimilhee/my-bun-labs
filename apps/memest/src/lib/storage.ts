@@ -51,7 +51,7 @@ export function loadData(): AppData {
 						debt: parsed.pair.debt ?? {},
 						streak: parsed.pair.streak ?? 0,
 						bestStreak: parsed.pair.bestStreak ?? 0,
-						review: parsed.pair.review ?? null,
+						review: migrateReview(parsed.pair.review),
 					}
 				: null,
 			// v0.4.0의 기록은 {score, stage}였다 — 모양이 다른 항목은 버린다
@@ -83,6 +83,22 @@ function migrateSession(
 	return old.mode === 'daily'
 		? { daily: { ...old, mode: 'daily' } }
 		: { drill: { ...old, mode: 'drill' } }
+}
+
+/** v0.4.5의 각인 단계는 {ref, head} 플래그였다 → step으로 환산 */
+function migrateReview(old: unknown): { verseId: string; step: number } | null {
+	if (!old || typeof old !== 'object') return null
+	const r = old as {
+		verseId?: string
+		step?: number
+		ref?: boolean
+		head?: boolean
+	}
+	if (!r.verseId) return null
+	return {
+		verseId: r.verseId,
+		step: typeof r.step === 'number' ? r.step : r.ref || r.head ? 1 : 0,
+	}
 }
 
 export function saveData(data: AppData) {
