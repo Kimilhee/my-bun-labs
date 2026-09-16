@@ -7,6 +7,7 @@ import {
 	headPhrase,
 	isFinished,
 	isStale,
+	restText,
 	scopeSig,
 } from '../lib/pair-game'
 import { scopeLabel } from '../lib/session'
@@ -98,6 +99,11 @@ export function PairGameScreen({ data, game, dispatch, onHome }: Props) {
 
 	const tap = (side: Side, id: string) => {
 		if (game.review || wrong.length > 0) return
+		// 같은 타일을 다시 누르면 선택 해제 (파란 표시와 나머지 본문이 사라진다)
+		if (pick?.side === side && pick.id === id) {
+			setPick(null)
+			return
+		}
 		if (!pick || pick.side === side) {
 			setPick({ side, id })
 			return
@@ -159,6 +165,8 @@ export function PairGameScreen({ data, game, dispatch, onHome }: Props) {
 
 	const pct = Math.round((game.done / game.total) * 100)
 	const rv = game.review
+	// 장절을 고르면 그 구절의 나머지 본문을 아래에 펼쳐준다 (첫 소절은 가린 채)
+	const hint = pick?.side === 'ref' ? restText(mustVerse(pick.id).text) : null
 
 	return (
 		<div className="screen">
@@ -223,7 +231,11 @@ export function PairGameScreen({ data, game, dispatch, onHome }: Props) {
 			</div>
 
 			<div className="pair-foot">
-				<span className="note">{scopeLabel(game.scope)}</span>
+				{hint ? (
+					<p className="pair-hint">⋯ {hint}</p>
+				) : (
+					<span className="note">{scopeLabel(game.scope)}</span>
+				)}
 			</div>
 
 			{reveal && (

@@ -42,6 +42,16 @@ export function headPhrase(text: string): string {
 	return take.join(' ')
 }
 
+/**
+ * 첫 소절 **뒤의** 나머지 본문. 장절을 고르면 이걸 보여준다 — 첫 소절까지 띄우면
+ * 오른쪽 열에 그 글자가 그대로 있어서 정답이 드러난다. 나머지만 보면
+ * "아, 이 구절이구나"까지는 가고 첫머리는 스스로 찾아야 한다.
+ */
+export function restText(text: string): string {
+	const taken = headPhrase(text).split(' ').length
+	return text.split(/\s+/).filter(Boolean).slice(taken).join(' ')
+}
+
 function shuffle<T>(items: T[]): T[] {
 	const a = [...items]
 	for (let i = a.length - 1; i > 0; i--) {
