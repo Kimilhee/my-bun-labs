@@ -811,21 +811,39 @@ body {
 	min-height: 0;
 }
 
-/* 고른 내용 카드는 오른쪽 열 전체로 커져 전문을 보여준다.
-   왼쪽 장절 열은 그대로 눌러 판정할 수 있다. */
+/* 각 칸은 펼쳐진 카드의 기준점 (타일은 평소엔 칸을 가득 채운다) */
+.pair-cell {
+	position: relative;
+	display: grid;
+	min-height: 0;
+}
+
+/* 고른 내용 카드는 **글자가 들어갈 만큼만** 자란다 — 자기 칸에서 아래로
+   번지므로 나머지 카드를 다 가리지 않는다. 아래쪽 칸(.up)에서는 위로 자란다. */
 .tile.expanded {
 	position: absolute;
-	inset: 0;
+	left: 0;
+	right: 0;
+	top: 0;
+	height: auto;
+	min-height: 100%;
+	max-height: min(52vh, 380px);
 	z-index: 5;
 	align-items: flex-start;
 	justify-content: flex-start;
 	overflow-y: auto;
 	overscroll-behavior: contain;
-	padding: 14px 16px;
-	font-size: 1rem;
+	padding: 12px 14px;
+	font-size: 0.97rem;
 	font-weight: 500;
-	line-height: 1.65;
+	line-height: 1.6;
 	text-align: left;
+	box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+}
+
+.tile.expanded.up {
+	top: auto;
+	bottom: 0;
 }
 
 /* 기본 카드는 검정. 오래 남은 카드만 회색으로 뜬다 */

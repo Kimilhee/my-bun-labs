@@ -200,38 +200,44 @@ export function PairGameScreen({ data, game, dispatch, onHome }: Props) {
 			<div className="pair-board">
 				<div className="pair-col">
 					{game.refs.map((id, i) => (
-						<button
-							type="button"
-							// biome-ignore lint/suspicious/noArrayIndexKey: 슬롯 자체가 자리라 인덱스가 키다
-							key={`ref-${i}`}
-							className={cls(id, 'ref')}
-							disabled={id === null}
-							onClick={() => id && tap('ref', id)}
-						>
-							{id && mustVerse(id).ref}
-							{/* 빚이 남은 카드는 얼마나 방치됐는지 작게 (맞춰도 다시 나온다는 신호) */}
-							{id && debtOf(game, id) < 0 && (
-								<span className="tile-debt">{debtOf(game, id)}</span>
-							)}
-						</button>
+						// biome-ignore lint/suspicious/noArrayIndexKey: 슬롯 자체가 자리라 인덱스가 키다
+						<div className="pair-cell" key={`ref-${i}`}>
+							<button
+								type="button"
+								className={cls(id, 'ref')}
+								disabled={id === null}
+								onClick={() => id && tap('ref', id)}
+							>
+								{id && mustVerse(id).ref}
+								{/* 빚이 남은 카드는 얼마나 방치됐는지 작게 (맞춰도 다시 나온다는 신호) */}
+								{id && debtOf(game, id) < 0 && (
+									<span className="tile-debt">{debtOf(game, id)}</span>
+								)}
+							</button>
+						</div>
 					))}
 				</div>
 				<div className="pair-col">
-					{game.heads.map((id, i) => (
-						<button
-							type="button"
+					{game.heads.map((id, i) => {
+						const open = pick?.side === 'head' && pick.id === id
+						return (
 							// biome-ignore lint/suspicious/noArrayIndexKey: 슬롯 자체가 자리라 인덱스가 키다
-							key={`head-${i}`}
-							className={cls(id, 'head')}
-							disabled={id === null}
-							onClick={() => id && tap('head', id)}
-						>
-							{id &&
-								(pick?.side === 'head' && pick.id === id
-									? mustVerse(id).text // 고른 카드만 전문
-									: headPhrase(mustVerse(id).text))}
-						</button>
-					))}
+							<div className="pair-cell" key={`head-${i}`}>
+								<button
+									type="button"
+									// 아래쪽 칸에서 펼칠 때는 위로 자란다 (판 밖으로 나가지 않게)
+									className={`${cls(id, 'head')} ${open && i >= 3 ? 'up' : ''}`}
+									disabled={id === null}
+									onClick={() => id && tap('head', id)}
+								>
+									{id &&
+										(open
+											? mustVerse(id).text
+											: headPhrase(mustVerse(id).text))}
+								</button>
+							</div>
+						)
+					})}
 				</div>
 			</div>
 
