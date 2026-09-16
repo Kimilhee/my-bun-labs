@@ -21,6 +21,8 @@ export const STALE_AGE = 5
 const STALE_COST = -1
 /** 맞추면 갚는 액수. 부채가 여전히 음수면 그 카드는 덱으로 돌아가 다시 나온다 */
 const MATCH_CREDIT = 5
+/** 틀린 짝에 관여한 두 구절이 먹는 추가 나이 (다른 카드는 늙지 않는다) */
+const MISS_AGE = 2
 
 /** 첫 소절 = 3~5어절. 글자 수로 끊어야 타일 크기가 고르다 (ADR-22) */
 const HEAD_CHARS = 12
@@ -54,9 +56,9 @@ export function scopeSig(scope: string[] | null, starredOnly: boolean): string {
 export const onBoard = (g: PairGame): string[] =>
 	g.refs.filter((id): id is string => id !== null)
 
-/** 카드 나이 = 보드에 있는 동안 지나간 턴 수 */
+/** 카드 나이 = 보드에 있는 동안 지나간 턴 수 + 틀려서 먹은 추가 나이 */
 export const ageOf = (g: PairGame, id: string): number =>
-	g.turn - (g.born[id] ?? g.turn)
+	g.turn - (g.born[id] ?? g.turn) + (g.aged[id] ?? 0)
 
 export const isStale = (g: PairGame, id: string): boolean =>
 	ageOf(g, id) >= STALE_AGE
@@ -165,12 +167,18 @@ function settle(g: PairGame): PairGame {
 	const { picked, deck } = take(g.deck, onBoard(g), free)
 	if (picked.length === 0) return g
 	const born = { ...g.born }
-	for (const id of picked) born[id] = g.turn
+	const aged = { ...g.aged }
+	// 새로 등장(되돌아온 카드 포함)하면 나이는 0부터 — 벌은 부채가 이미 들고 있다
+	for (const id of picked) {
+		born[id] = g.turn
+		delete aged[id]
+	}
 	const refs = stack(g.refs, picked)
 	return {
 		...g,
 		deck,
 		born,
+		aged,
 		refs,
 		heads: fixRows(refs, fill(g.heads, shuffle(picked))),
 	}
@@ -199,6 +207,7 @@ export function newGame(
 		refs: Array(Math.min(SLOTS, ids.length)).fill(null),
 		heads: Array(Math.min(SLOTS, ids.length)).fill(null),
 		born: {},
+		aged: {},
 		debt: {},
 		turn: 0,
 		streak: 0,
@@ -230,7 +239,12 @@ const without = (slots: (string | null)[], id: string) =>
  */
 export function tryPair(g: PairGame, refId: string, headId: string): PairGame {
 	if (g.review) return g
-	if (refId !== headId) return { ...g, streak: 0, misses: g.misses + 1 } // 틀림 — 시간은 흐르지 않는다
+	if (refId !== headId) {
+		// 틀림 — 전체 시간은 흐르지 않고, **관여한 두 구절만** 나이를 먹는다
+		const aged = { ...g.aged }
+		for (const id of [refId, headId]) aged[id] = (aged[id] ?? 0) + MISS_AGE
+		return { ...g, aged, streak: 0, misses: g.misses + 1 }
+	}
 
 	// 방치 비용은 **이번 턴 시작 시점에** 이미 오래된 카드에만 붙는다
 	const debt = { ...g.debt }
@@ -250,9 +264,12 @@ export function tryPair(g: PairGame, refId: string, headId: string): PairGame {
 	const graduated = rest >= 0
 	if (graduated) delete debt[refId]
 	else debt[refId] = rest
+	const aged = { ...g.aged }
+	delete aged[refId] // 판에서 내려가는 카드의 추가 나이는 남길 필요가 없다
 	const late = isStale(g, refId)
 	const next: PairGame = {
 		...turned,
+		aged,
 		refs: stack(without(turned.refs, refId)),
 		heads: without(turned.heads, refId),
 		deck: graduated ? turned.deck : insertBack(turned.deck, refId, rest),

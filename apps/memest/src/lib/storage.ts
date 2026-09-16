@@ -48,6 +48,7 @@ export function loadData(): AppData {
 			pair: parsed.pair
 				? {
 						...parsed.pair,
+						aged: parsed.pair.aged ?? {},
 						debt: parsed.pair.debt ?? {},
 						streak: parsed.pair.streak ?? 0,
 						bestStreak: parsed.pair.bestStreak ?? 0,

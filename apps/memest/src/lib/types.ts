@@ -84,6 +84,8 @@ export type PairGame = {
 	refs: (string | null)[]
 	heads: (string | null)[]
 	born: Record<string, number> // verseId → 보드에 등장한 시점의 턴 수 (나이 계산용)
+	/** 틀린 짝에 관여해서 먹은 추가 나이. 등장 순서(born)는 건드리지 않는다 */
+	aged: Record<string, number>
 	/** 카드별 부채(음수). 방치 턴마다 −1, 맞추면 +5. 0 이상이 되면 졸업하고 항목 삭제 */
 	debt: Record<string, number>
 	turn: number // 완료된 판정 횟수 (맞춘 것·틀린 것 모두)
