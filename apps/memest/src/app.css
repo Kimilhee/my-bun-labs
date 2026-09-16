@@ -804,10 +804,28 @@ body {
 }
 
 .pair-col {
+	position: relative; /* 펼쳐진 내용 카드의 기준 */
 	display: grid;
 	grid-auto-rows: 1fr;
 	gap: 10px;
 	min-height: 0;
+}
+
+/* 고른 내용 카드는 오른쪽 열 전체로 커져 전문을 보여준다.
+   왼쪽 장절 열은 그대로 눌러 판정할 수 있다. */
+.tile.expanded {
+	position: absolute;
+	inset: 0;
+	z-index: 5;
+	align-items: flex-start;
+	justify-content: flex-start;
+	overflow-y: auto;
+	overscroll-behavior: contain;
+	padding: 14px 16px;
+	font-size: 1rem;
+	font-weight: 500;
+	line-height: 1.65;
+	text-align: left;
 }
 
 /* 기본 카드는 검정. 오래 남은 카드만 회색으로 뜬다 */

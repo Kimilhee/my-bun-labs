@@ -158,9 +158,11 @@ export function PairGameScreen({ data, game, dispatch, onHome }: Props) {
 		if (id === null) return 'tile empty'
 		const hit = wrong.includes(id) ? 'wrong' : ''
 		const on = pick?.side === side && pick.id === id ? 'picked' : ''
+		// 고른 내용 카드는 열 전체로 커져 전문을 보여준다 (장절 열은 가리지 않는다)
+		const open = side === 'head' && on ? 'expanded' : ''
 		// 회색·부채 표시는 **장절 열만** — 양쪽을 다 칠하면 짝이 너무 드러난다
 		const old = side === 'ref' && isStale(game, id) ? 'stale' : ''
-		return `tile ${old} ${hit} ${on}`
+		return `tile ${old} ${hit} ${on} ${open}`
 	}
 
 	const pct = Math.round((game.done / game.total) * 100)
@@ -224,7 +226,10 @@ export function PairGameScreen({ data, game, dispatch, onHome }: Props) {
 							disabled={id === null}
 							onClick={() => id && tap('head', id)}
 						>
-							{id && headPhrase(mustVerse(id).text)}
+							{id &&
+								(pick?.side === 'head' && pick.id === id
+									? mustVerse(id).text // 고른 카드만 전문
+									: headPhrase(mustVerse(id).text))}
 						</button>
 					))}
 				</div>
