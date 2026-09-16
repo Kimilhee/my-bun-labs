@@ -23,6 +23,10 @@ const STALE_COST = -1
 const MATCH_CREDIT = 5
 /** 틀린 짝에 관여한 두 구절이 먹는 추가 나이 (다른 카드는 늙지 않는다) */
 const MISS_AGE = 2
+/** 틀린 짝에 관여한 두 구절의 부채 (찍어보는 탐색에 값을 매긴다) */
+const MISS_DEBT = -2
+/** 부채 하한 — 최악이어도 무결점 3번(−15 → −10 → −5 → 0)이면 졸업할 수 있게 */
+export const DEBT_FLOOR = -15
 
 /** 첫 소절 = 3~5어절. 글자 수로 끊어야 타일 크기가 고르다 (ADR-22) */
 const HEAD_CHARS = 12
@@ -66,13 +70,17 @@ export const isStale = (g: PairGame, id: string): boolean =>
 /** 카드의 현재 부채 (0이면 빚 없음) */
 export const debtOf = (g: PairGame, id: string): number => g.debt[id] ?? 0
 
+/** 부채를 깎을 때는 언제나 하한에서 멈춘다 */
+const sink = (debt: number, delta: number): number =>
+	Math.max(DEBT_FLOOR, debt + delta)
+
 /**
  * 이번 턴에 이 카드를 맞추면 부채가 얼마가 되는지. 0 이상이면 졸업(사라짐),
  * 음수면 덱으로 돌아가 **다시 등장**한다 (하드 드릴의 부채와 같은 원리 — ADR-18).
  * 리듀서와 화면이 같은 값을 쓰도록 여기 한 군데서만 계산한다.
  */
 export function afterMatch(g: PairGame, id: string): number {
-	return debtOf(g, id) + (isStale(g, id) ? STALE_COST : 0) + MATCH_CREDIT
+	return sink(debtOf(g, id), isStale(g, id) ? STALE_COST : 0) + MATCH_CREDIT
 }
 
 /** 부채가 깊을수록 덱 앞쪽에 꽂아 빨리 되돌아오게 한다 */
@@ -240,16 +248,20 @@ const without = (slots: (string | null)[], id: string) =>
 export function tryPair(g: PairGame, refId: string, headId: string): PairGame {
 	if (g.review) return g
 	if (refId !== headId) {
-		// 틀림 — 전체 시간은 흐르지 않고, **관여한 두 구절만** 나이를 먹는다
+		// 틀림 — 전체 시간은 흐르지 않고, **관여한 두 구절만** 나이와 부채를 먹는다
 		const aged = { ...g.aged }
-		for (const id of [refId, headId]) aged[id] = (aged[id] ?? 0) + MISS_AGE
-		return { ...g, aged, streak: 0, misses: g.misses + 1 }
+		const debt = { ...g.debt }
+		for (const id of [refId, headId]) {
+			aged[id] = (aged[id] ?? 0) + MISS_AGE
+			debt[id] = sink(debtOf(g, id), MISS_DEBT)
+		}
+		return { ...g, aged, debt, streak: 0, misses: g.misses + 1 }
 	}
 
 	// 방치 비용은 **이번 턴 시작 시점에** 이미 오래된 카드에만 붙는다
 	const debt = { ...g.debt }
 	for (const id of onBoard(g))
-		if (isStale(g, id)) debt[id] = debtOf(g, id) + STALE_COST
+		if (isStale(g, id)) debt[id] = sink(debtOf(g, id), STALE_COST)
 	const streak = g.streak + 1
 	const turned: PairGame = {
 		...g,
